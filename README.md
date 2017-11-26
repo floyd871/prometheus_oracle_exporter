@@ -1,6 +1,6 @@
 # Oracle DB Exporter
 
-A [Prometheus](https://prometheus.io/) exporter for Oracle modeled after the MySQL exporter. I'm a DBA , PRs welcomed.
+A [Prometheus](https://prometheus.io/) exporter for Oracle. Insipred from (https://github.com/iamseth/oracledb_exporter). I'm a DBA , PRs welcomed.
 
 The following metrics are exposed currently. Support for RAC (databasename and instancename added via lables)
 
