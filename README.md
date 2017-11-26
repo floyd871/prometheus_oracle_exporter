@@ -18,7 +18,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 
 # Installation
 
-Ensure that the environment variable DATA_SOURCE_NAME is set correctly before starting. You can add multiple instances, if you run more than one instance on a host.
+Ensure that the environment variable DATA_SOURCE_NAME is set correctly before starting. You can add multiple instances, if you run more than one instance on a host. It is even possible to run one Exporter for all yout Databases, put this is not recommended.
 
 ```bash
 export DATA_SOURCE_NAME="system/oracle@myhost1;system/oracle@myhost2;system/oracle@myhost3"
