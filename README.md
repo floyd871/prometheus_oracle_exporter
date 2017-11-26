@@ -22,23 +22,6 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 
 # Installation
 
-## Docker
-
-You can run via Docker using an existing image. If you don't already have an Oracle server, you can run one locally in a container and then link the exporter to it.
-
-```bash
-docker run --name oracle -d -p 8080:8080 -p 1521:1521 sath89/oracle-12c
-docker run -d --link=oracle -p 9161:9161 -e DATA_SOURCE_NAME=system/oracle@oracle/xe.oracle.docker iamseth/oracledb_exporter
-```
-
-## Binary Release
-
-Pre-compiled versions for Linux 64 bit and Mac OSX 64 bit can be found under [releases](https://github.com/iamseth/oracledb_exporter/releases).
-
-In order to run, you'll need the [Oracle Instant Client Basic](http://www.oracle.com/technetwork/database/features/instant-client/index-097480.html) for your operating system. Only the basic version is required for execution.
-
-# Running the Binary
-
 Ensure that the environment variable DATA_SOURCE_NAME is set correctly before starting. You can add multiple instances, if you run more than one instance on a host.
 
 ```bash
