@@ -42,7 +42,3 @@ Usage of oracledb_exporter:
   -web.telemetry-path string
        	Path under which to expose metrics. (default "/metrics")
 ```
-
-# Integration with Grafana
-
-An example Grafana dashboard is available [here](https://grafana.com/dashboards/3333).
