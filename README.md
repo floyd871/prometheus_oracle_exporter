@@ -1,9 +1,5 @@
 # Oracle DB Exporter
 
-[![Build Status](https://travis-ci.org/iamseth/oracledb_exporter.svg)](https://travis-ci.org/iamseth/oracledb_exporter)
-[![GoDoc](https://godoc.org/github.com/iamseth/oracledb_exporter?status.svg)](http://godoc.org/github.com/iamseth/oracledb_exporter)
-[![Report card](https://goreportcard.com/badge/github.com/iamseth/oracledb_exporter)](https://goreportcard.com/badge/github.com/iamseth/oracledb_exporter)
-
 A [Prometheus](https://prometheus.io/) exporter for Oracle modeled after the MySQL exporter. I'm a DBA , PRs welcomed.
 
 The following metrics are exposed currently. Support for RAC (databasename and instancename added via lables)
