@@ -1,4 +1,4 @@
-# Oracle DB Exporter
+# Prometheus Oracle Exporter
 
 A [Prometheus](https://prometheus.io/) exporter for Oracle. Insipred from (https://github.com/iamseth/oracledb_exporter). I'm a DBA , PRs welcomed.
 
@@ -9,11 +9,12 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_exporter_scrapes_total
 - oracledb_uptime (days)
 - oracledb_session (view v$session system/user active/passive)
-- oracledb_sysmetric (view v$sysmetric)
-- oracledb_sysstat (view v$sysstat)
+- oracledb_sysmetric (view v$sysmetric (Physical Read Total IO Requests Per Sec / Physical Write Total IO Requests Per Sec
+					Physical Read Total Bytes Per Sec / Physical Write Total Bytes Per Sec)
+- oracledb_sysstat (view v$sysstat (parse count (total) / execute count / user commits / user rollbacks))
 - oracledb_waitclass (view v$waitclass)
-- oracledb_tsfree (tablespace free)
-- oracledb_tssize (tablespace total size)
+- oracledb_tablespace (tablespace total/free)
+- oracledb_interconnect (view v$sysstat (gc cr blocks received / gc cr block receive time))
 ...
 
 # Installation

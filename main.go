@@ -17,10 +17,10 @@ import (
 
 var (
 	// Version will be set at build time.
-	Version       = "0.0.1"
+	Version       = "0.0.2"
 	listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-	landingPage   = []byte("<html><head><title>Oracle DB exporter</title></head><body><h1>Oracle DB exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
+	landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
 )
 
 // Metric name parts.
@@ -45,9 +45,9 @@ type Exporter struct {
         sysstat         *prometheus.GaugeVec
         waitclass       *prometheus.GaugeVec
 	sysmetric   	*prometheus.GaugeVec
+	interconnect   	*prometheus.GaugeVec
 	uptime          *prometheus.GaugeVec
-	tssize          *prometheus.GaugeVec
-	tsfree          *prometheus.GaugeVec
+	tablespace      *prometheus.GaugeVec
         conns           []dbConn
 }
 
@@ -88,38 +88,66 @@ func NewExporter(dsn string) *Exporter {
 		waitclass: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "waitclass",
-			Help:      "Generic counter metric from v$waitclassmetric vie.",
+			Help:      "Gauge metric from v$waitclassmetric.",
 		}, []string{"type","database","dbinstance"}),
 		sysstat: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "sysstat",
-			Help:      "Generic counter metric from v$sysstat view.",
+			Help:      "Gauge metric from v$sysstat.",
 		}, []string{"type","database","dbinstance"}),
 		session: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "session",
-			Help:      "Gauge metric with count of v$session view.",
+			Help:      "Gauge metric from v$session.",
 		}, []string{"type","state","database","dbinstance"}),
 		uptime: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "uptime",
 			Help:      "Gauge metric with uptime in days of the Instance.",
 		}, []string{"database","dbinstance"}),
-		tssize: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		tablespace: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
-			Name:      "tssize",
-			Help:      "Gauge metric with th total size of the Tablespace.",
-		}, []string{"name","contents","database","dbinstance"}),
-		tsfree: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name:      "tablespace",
+			Help:      "Gauge metric with total/free size of the Tablespaces.",
+		}, []string{"name","type","contents","database","dbinstance"}),
+		interconnect: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
-			Name:      "tsfree",
-			Help:      "Gauge metric with the free space of the Tablespace.",
-		}, []string{"name","contents","database","dbinstance"}),
+			Name:      "interconnect",
+			Help:      "Gauge metric with interconnect stats from v$sysstat.",
+		}, []string{"type","database","dbinstance"}),
 	}
 }
 
 // ScrapeTablespaces collects tablespace metrics
-func (e *Exporter) ScrapeTablespaces() {
+func (e *Exporter) ScrapeInterconnect() {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	for _, conn := range e.conns {        
+	  	rows, err = conn.db.Query(`SELECT a.value,b.value, (a.value/b.value)*10 
+                                           FROM V$SYSSTAT a,V$SYSSTAT b 
+                                           WHERE a.NAME ='gc cr blocks received' and b.name='gc cr block receive time'`)
+		if err != nil {
+			break
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var rectot float64
+			var rectime float64
+			var recms float64
+			if err := rows.Scan(&rectot, &rectime, &recms); err != nil {
+				break
+			}
+	                e.interconnect.WithLabelValues("gc_blocks_total",conn.database,conn.instance).Set(rectot)
+	                e.interconnect.WithLabelValues("gc_blocks_time",conn.database,conn.instance).Set(rectime)
+	                e.interconnect.WithLabelValues("gc_blocks_avg",conn.database,conn.instance).Set(recms)
+		}
+	}
+}
+
+// ScrapeTablespaces collects tablespace metrics
+func (e *Exporter) ScrapeTablespace() {
 	var (
 		rows *sql.Rows
 		err  error
@@ -146,12 +174,12 @@ func (e *Exporter) ScrapeTablespaces() {
 			if err := rows.Scan(&name, &contents, &tsize, &tfree); err != nil {
 				break
 			}
-	                e.tssize.WithLabelValues(name,contents,conn.database,conn.instance).Set(tsize)
-	                e.tsfree.WithLabelValues(name,contents,conn.database,conn.instance).Set(tfree)
+	                e.tablespace.WithLabelValues(name,"total",contents,conn.database,conn.instance).Set(tsize)
+	                e.tablespace.WithLabelValues(name,"free",contents,conn.database,conn.instance).Set(tfree)
+	                e.tablespace.WithLabelValues(name,"used",contents,conn.database,conn.instance).Set(tsize-tfree)
 		}
 	}
 }
-
 
 // ScrapeSessions collects session metrics from the v$session view.
 func (e *Exporter) ScrapeSession() {
@@ -160,7 +188,9 @@ func (e *Exporter) ScrapeSession() {
 		err  error
 	)
 	for _, conn := range e.conns {        
-	  	rows, err = conn.db.Query("SELECT decode(username,NULL,'SYSTEM','SYS','SYSTEM','USER'), status,count(*) from v$session group by decode(username,NULL,'SYSTEM','SYS','SYSTEM','USER'),status")
+	  	rows, err = conn.db.Query(`SELECT decode(username,NULL,'SYSTEM','SYS','SYSTEM','USER'), status,count(*) 
+                                           FROM v$session 
+                                           GROUP BY decode(username,NULL,'SYSTEM','SYS','SYSTEM','USER'),status`)
 		if err != nil {
 			break
 		}
@@ -197,7 +227,8 @@ func (e *Exporter) ScrapeSysstat() {
 		err  error
 	)
 	for _, conn := range e.conns {        
-	  	rows, err = conn.db.Query("SELECT name, value FROM v$sysstat WHERE name IN ('parse count (total)', 'execute count', 'user commits', 'user rollbacks')")
+	  	rows, err = conn.db.Query(`SELECT name, value FROM v$sysstat 
+                                           WHERE name IN ('parse count (total)', 'execute count', 'user commits', 'user rollbacks')`)
 		if err != nil {
 			break
 		}
@@ -221,7 +252,9 @@ func (e *Exporter) ScrapeWaitclass() {
 		err  error
 	)
 	for _, conn := range e.conns {        
-	  	rows, err = conn.db.Query("SELECT n.wait_class, round(m.time_waited/m.INTSIZE_CSEC,3) AAS from v$waitclassmetric  m, v$system_wait_class n where m.wait_class_id=n.wait_class_id and n.wait_class != 'Idle'")
+	  	rows, err = conn.db.Query(`SELECT n.wait_class, round(m.time_waited/m.INTSIZE_CSEC,3)
+                                           FROM v$waitclassmetric  m, v$system_wait_class n 
+                                           WHERE m.wait_class_id=n.wait_class_id and n.wait_class != 'Idle'`)
 		if err != nil {
 			break
 		}
@@ -277,8 +310,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
         e.sysstat.Describe(ch)
         e.waitclass.Describe(ch)
 	e.sysmetric.Describe(ch)
-        e.tssize.Describe(ch)
-        e.tsfree.Describe(ch)
+	e.interconnect.Describe(ch)
+        e.tablespace.Describe(ch)
 	e.uptime.Describe(ch)
 }
 
@@ -347,9 +380,11 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
         e.ScrapeSysmetric()
         e.sysmetric.Collect(ch)
 
-        e.ScrapeTablespaces()
-        e.tssize.Collect(ch)
-        e.tsfree.Collect(ch)
+        e.ScrapeTablespace()
+        e.tablespace.Collect(ch)
+
+        e.ScrapeInterconnect()
+        e.interconnect.Collect(ch)
 
 	ch <- e.duration
 	ch <- e.totalScrapes
@@ -371,7 +406,7 @@ func cleanName(s string) string {
 
 func main() {
 	flag.Parse()
-	log.Infoln("Starting oracledb_exporter " + Version)
+	log.Infoln("Starting Prometheus Oracle exporter " + Version)
 	dsn := os.Getenv("DATA_SOURCE_NAME")
 	exporter := NewExporter(dsn)
 	prometheus.MustRegister(exporter)
