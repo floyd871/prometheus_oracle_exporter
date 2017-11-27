@@ -28,13 +28,9 @@ export DATA_SOURCE_NAME="system/oracle@myhost1;system/oracle@myhost2;system/orac
 ## Usage
 
 ```bash
-Usage of oracledb_exporter:
-  -log.format value
-       	If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true. Defaults to stderr.
-  -log.level value
-       	Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal].
+Usage of ./prometheus_oracle_exporter:
   -web.listen-address string
-       	Address to listen on for web interface and telemetry. (default ":9161")
+    	Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
-       	Path under which to expose metrics. (default "/metrics")
+    	Path under which to expose metrics. (default "/metrics")
 ```
