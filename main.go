@@ -17,7 +17,7 @@ import (
 
 var (
 	// Version will be set at build time.
-	Version       = "0.0.2"
+	Version       = "0.0.3"
 	listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
@@ -125,23 +125,21 @@ func (e *Exporter) ScrapeInterconnect() {
 		err  error
 	)
 	for _, conn := range e.conns {        
-	  	rows, err = conn.db.Query(`SELECT a.value,b.value, (a.value/b.value)*10 
-                                           FROM V$SYSSTAT a,V$SYSSTAT b 
-                                           WHERE a.NAME ='gc cr blocks received' and b.name='gc cr block receive time'`)
+	  	rows, err = conn.db.Query(`SELECT name, value
+                                           FROM V$SYSSTAT
+                                           WHERE name in ('gc cr blocks served','gc cr blocks flushed','gc cr blocks received')`)
 		if err != nil {
 			break
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var rectot float64
-			var rectime float64
-			var recms float64
-			if err := rows.Scan(&rectot, &rectime, &recms); err != nil {
+			var name string
+			var value float64
+			if err := rows.Scan(&name, &value); err != nil {
 				break
 			}
-	                e.interconnect.WithLabelValues("gc_blocks_total",conn.database,conn.instance).Set(rectot)
-	                e.interconnect.WithLabelValues("gc_blocks_time",conn.database,conn.instance).Set(rectime)
-	                e.interconnect.WithLabelValues("gc_blocks_avg",conn.database,conn.instance).Set(recms)
+			name = cleanName(name)
+	                e.interconnect.WithLabelValues(name,conn.database,conn.instance).Set(value)
 		}
 	}
 }

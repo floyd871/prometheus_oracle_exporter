@@ -14,7 +14,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_sysstat (view v$sysstat (parse count (total) / execute count / user commits / user rollbacks))
 - oracledb_waitclass (view v$waitclass)
 - oracledb_tablespace (tablespace total/free)
-- oracledb_interconnect (view v$sysstat (gc cr blocks received / gc cr block receive time))
+- oracledb_interconnect (view v$sysstat (gc cr blocks served / gc cr blocks flushed / gc cr blocks received))
 ...
 
 # Installation
