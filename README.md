@@ -15,6 +15,8 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_waitclass (view v$waitclass)
 - oracledb_tablespace (tablespace total/free)
 - oracledb_interconnect (view v$sysstat (gc cr blocks served / gc cr blocks flushed / gc cr blocks received))
+- oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
+- oracledb_redo (Redo log switches over last 5 min from v$log_history)
 ...
 
 # Installation
@@ -23,6 +25,7 @@ Ensure that the environment variable DATA_SOURCE_NAME is set correctly before st
 
 ```bash
 export DATA_SOURCE_NAME="system/oracle@myhost1;system/oracle@myhost2;system/oracle@myhost3"
+export NLS_LANG=AMERICAN_AMERICA.UTF8
 /path/to/binary -l log.level error -l web.listen-address 9161
 ```
 

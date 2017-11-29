@@ -48,6 +48,8 @@ type Exporter struct {
 	interconnect   	*prometheus.GaugeVec
 	uptime          *prometheus.GaugeVec
 	tablespace      *prometheus.GaugeVec
+	recovery        *prometheus.GaugeVec
+	redo            *prometheus.GaugeVec
         conns           []dbConn
 }
 
@@ -115,6 +117,61 @@ func NewExporter(dsn string) *Exporter {
 			Name:      "interconnect",
 			Help:      "Gauge metric with interconnect stats from v$sysstat.",
 		}, []string{"type","database","dbinstance"}),
+		recovery: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "recovery",
+			Help:      "Gauge metric with percentage usage in FRA from V$RECOVERY_FILE_DEST.",
+		}, []string{"database","dbinstance"}),
+		redo: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "redo",
+			Help:      "Gauge metric with Redo log switches over last 5 min from v$log_history.",
+		}, []string{"database","dbinstance"}),
+	}
+}
+
+// ScrapeRecovery collects tablespace metrics
+func (e *Exporter) ScrapeRedo() {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	for _, conn := range e.conns {        
+	  	rows, err = conn.db.Query(`select count(*) from v$log_history where first_time > sysdate - 1/24/12`)
+		if err != nil {
+			break
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var value float64
+			if err := rows.Scan(&value); err != nil {
+				break
+			}
+	                e.redo.WithLabelValues(conn.database,conn.instance).Set(value)
+		}
+	}
+}
+
+// ScrapeRecovery collects tablespace metrics
+func (e *Exporter) ScrapeRecovery() {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	for _, conn := range e.conns {        
+	  	rows, err = conn.db.Query(`SELECT sum(percent_space_used)-sum(percent_space_reclaimable) percent_used 
+                                           from V$FLASH_RECOVERY_AREA_USAGE`)
+		if err != nil {
+			break
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var value float64
+			if err := rows.Scan(&value); err != nil {
+				break
+			}
+	                e.recovery.WithLabelValues(conn.database,conn.instance).Set(value)
+		}
 	}
 }
 
@@ -315,6 +372,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.sysmetric.Describe(ch)
 	e.interconnect.Describe(ch)
         e.tablespace.Describe(ch)
+        e.recovery.Describe(ch)
+        e.redo.Describe(ch)
 	e.uptime.Describe(ch)
 }
 
@@ -388,6 +447,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
         e.ScrapeInterconnect()
         e.interconnect.Collect(ch)
+
+        e.ScrapeRecovery()
+        e.recovery.Collect(ch)
+
+        e.ScrapeRedo()
+        e.redo.Collect(ch)
 
 	ch <- e.duration
 	ch <- e.totalScrapes
