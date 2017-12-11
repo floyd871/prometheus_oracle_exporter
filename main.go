@@ -17,7 +17,7 @@ import (
 
 var (
 	// Version will be set at build time.
-	Version       = "0.0.3"
+	Version       = "0.0.4"
 	listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
@@ -50,6 +50,7 @@ type Exporter struct {
 	tablespace      *prometheus.GaugeVec
 	recovery        *prometheus.GaugeVec
 	redo            *prometheus.GaugeVec
+	cache           *prometheus.GaugeVec
         conns           []dbConn
 }
 
@@ -85,22 +86,22 @@ func NewExporter(dsn string) *Exporter {
 		sysmetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "sysmetric",
-			Help:      "Gauge metric from v$sysmetric view.",
-		}, []string{"type","database","dbinstance"}),
+			Help:      "Gauge metric with read/write pysical IOPs/bytes (v$sysmetric).",
+		}, []string{"type","unit","database","dbinstance"}),
 		waitclass: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "waitclass",
-			Help:      "Gauge metric from v$waitclassmetric.",
+			Help:      "Gauge metric with Waitevents (v$waitclassmetric).",
 		}, []string{"type","database","dbinstance"}),
 		sysstat: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "sysstat",
-			Help:      "Gauge metric from v$sysstat.",
+			Help:      "Gauge metric with commits/rollbacks/parses (v$sysstat).",
 		}, []string{"type","database","dbinstance"}),
 		session: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "session",
-			Help:      "Gauge metric from v$session.",
+			Help:      "Gauge metric user/system active/passive sessions (v$session).",
 		}, []string{"type","state","database","dbinstance"}),
 		uptime: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -115,20 +116,57 @@ func NewExporter(dsn string) *Exporter {
 		interconnect: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "interconnect",
-			Help:      "Gauge metric with interconnect stats from v$sysstat.",
+			Help:      "Gauge metric with interconnect block transfers (v$sysstat).",
 		}, []string{"type","database","dbinstance"}),
 		recovery: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "recovery",
-			Help:      "Gauge metric with percentage usage in FRA from V$RECOVERY_FILE_DEST.",
+			Help:      "Gauge metric with percentage usage of FRA (v$recovery_file_dest).",
 		}, []string{"database","dbinstance"}),
 		redo: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "redo",
-			Help:      "Gauge metric with Redo log switches over last 5 min from v$log_history.",
+			Help:      "Gauge metric with Redo log switches over last 5 min (v$log_history).",
 		}, []string{"database","dbinstance"}),
+		cache: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "cachehitratio",
+			Help:      "Gauge metric witch Cache hit ratios (v$sysmetric).",
+		}, []string{"type","unit","database","dbinstance"}),
 	}
 }
+
+// ScrapeCache collects session metrics from the v$sysmetrics view.
+func (e *Exporter) ScrapeCache() {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	for _, conn := range e.conns {        
+		//metric_id	metric_name
+		//2000		Buffer Cache Hit Ratio
+		//2050		Cursor Cache Hit Ratio
+		//2112		Library Cache Hit Ratio
+		//2110		Row Cache Hit Ratio
+
+	  	rows, err = conn.db.Query("select metric_name,value,metric_unit from v$sysmetric where metric_id in (2000,2050,2112,2110)")
+		if err != nil {
+			break
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			var value float64
+			var unit string
+			if err := rows.Scan(&name, &value, &unit); err != nil {
+				break
+			}
+			name = cleanName(name)
+	                e.cache.WithLabelValues(name,unit,conn.database,conn.instance).Set(value)
+		}
+	}
+}
+
 
 // ScrapeRecovery collects tablespace metrics
 func (e *Exporter) ScrapeRedo() {
@@ -343,7 +381,7 @@ func (e *Exporter) ScrapeSysmetric() {
 		//2093		Physical Read Total Bytes Per Sec
 		//2100		Physical Write Total IO Requests Per Sec
 		//2124		Physical Write Total Bytes Per Sec
-	  	rows, err = conn.db.Query("select metric_name,value from v$sysmetric where metric_id in (2092,2093,2124,2100)")
+	  	rows, err = conn.db.Query("select metric_name,value,metric_unit from v$sysmetric where metric_id in (2092,2093,2124,2100)")
 		if err != nil {
 			break
 		}
@@ -351,11 +389,12 @@ func (e *Exporter) ScrapeSysmetric() {
 		for rows.Next() {
 			var name string
 			var value float64
-			if err := rows.Scan(&name, &value); err != nil {
+			var unit string
+			if err := rows.Scan(&name, &value, &unit); err != nil {
 				break
 			}
 			name = cleanName(name)
-	                e.sysmetric.WithLabelValues(name,conn.database,conn.instance).Set(value)
+	                e.sysmetric.WithLabelValues(name,unit,conn.database,conn.instance).Set(value)
 		}
 	}
 }
@@ -374,6 +413,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
         e.tablespace.Describe(ch)
         e.recovery.Describe(ch)
         e.redo.Describe(ch)
+        e.cache.Describe(ch)
 	e.uptime.Describe(ch)
 }
 
@@ -453,6 +493,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
         e.ScrapeRedo()
         e.redo.Collect(ch)
+
+        e.ScrapeCache()
+        e.cache.Collect(ch)
 
 	ch <- e.duration
 	ch <- e.totalScrapes

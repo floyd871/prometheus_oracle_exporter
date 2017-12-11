@@ -17,6 +17,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_interconnect (view v$sysstat (gc cr blocks served / gc cr blocks flushed / gc cr blocks received))
 - oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
 - oracledb_redo (Redo log switches over last 5 min from v$log_history)
+- oracledb_cachehitratio (Cache hit ratios (v$sysmetric)
 ...
 
 # Installation
