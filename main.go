@@ -87,7 +87,7 @@ func NewExporter(dsn string) *Exporter {
 			Namespace: namespace,
 			Name:      "sysmetric",
 			Help:      "Gauge metric with read/write pysical IOPs/bytes (v$sysmetric).",
-		}, []string{"type","unit","database","dbinstance"}),
+		}, []string{"type","database","dbinstance"}),
 		waitclass: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "waitclass",
@@ -132,7 +132,7 @@ func NewExporter(dsn string) *Exporter {
 			Namespace: namespace,
 			Name:      "cachehitratio",
 			Help:      "Gauge metric witch Cache hit ratios (v$sysmetric).",
-		}, []string{"type","unit","database","dbinstance"}),
+		}, []string{"type","database","dbinstance"}),
 	}
 }
 
@@ -149,7 +149,7 @@ func (e *Exporter) ScrapeCache() {
 		//2112		Library Cache Hit Ratio
 		//2110		Row Cache Hit Ratio
 
-	  	rows, err = conn.db.Query("select metric_name,value,metric_unit from v$sysmetric where metric_id in (2000,2050,2112,2110)")
+	  	rows, err = conn.db.Query("select metric_name,value from v$sysmetric where metric_id in (2000,2050,2112,2110)")
 		if err != nil {
 			break
 		}
@@ -157,12 +157,11 @@ func (e *Exporter) ScrapeCache() {
 		for rows.Next() {
 			var name string
 			var value float64
-			var unit string
-			if err := rows.Scan(&name, &value, &unit); err != nil {
+			if err := rows.Scan(&name, &value); err != nil {
 				break
 			}
 			name = cleanName(name)
-	                e.cache.WithLabelValues(name,unit,conn.database,conn.instance).Set(value)
+	                e.cache.WithLabelValues(name,conn.database,conn.instance).Set(value)
 		}
 	}
 }
@@ -381,7 +380,7 @@ func (e *Exporter) ScrapeSysmetric() {
 		//2093		Physical Read Total Bytes Per Sec
 		//2100		Physical Write Total IO Requests Per Sec
 		//2124		Physical Write Total Bytes Per Sec
-	  	rows, err = conn.db.Query("select metric_name,value,metric_unit from v$sysmetric where metric_id in (2092,2093,2124,2100)")
+	  	rows, err = conn.db.Query("select metric_name,value from v$sysmetric where metric_id in (2092,2093,2124,2100)")
 		if err != nil {
 			break
 		}
@@ -389,12 +388,11 @@ func (e *Exporter) ScrapeSysmetric() {
 		for rows.Next() {
 			var name string
 			var value float64
-			var unit string
-			if err := rows.Scan(&name, &value, &unit); err != nil {
+			if err := rows.Scan(&name, &value); err != nil {
 				break
 			}
 			name = cleanName(name)
-	                e.sysmetric.WithLabelValues(name,unit,conn.database,conn.instance).Set(value)
+	                e.sysmetric.WithLabelValues(name,conn.database,conn.instance).Set(value)
 		}
 	}
 }
