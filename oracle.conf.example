@@ -2,53 +2,58 @@ connections:
  - connection: <user>/<pass>@<tnsname>
    database: DEVELOP
    instance: DEVELOP
-   alertlog: /data/oracle/diag/rdbms/develop/DEVELOP/trace/alert_DEVELOP.log
-   ignoreora:
-    - ORA-01033
-    - ORA-01041
-    - ORA-01089
-    - ORA-02050
-    - ORA-02068
-    - ORA-03113
-    - ORA-03135
-    - ORA-12537
-    - ORA-16011
-    - ORA-16040
-    - ORA-16055
-    - ORA-16058
-    - ORA-16401
-    - ORA-00054
-    - ORA-01013
-    - ORA-01555
-    - ORA-28
-    - ORA-235
-    - ORA-609
-    - ORA-3136
-    - ABORT_REDEF_TABLE
+   alertlog:
+    - file: /data/oracle/diag/rdbms/develop/DEVELOP/trace/alert_DEVELOP.log
+      scantime: 300
+      ignoreora:
+       - ORA-00001
+       - ORA-01033
+       - ORA-01041
+       - ORA-01089
+       - ORA-02050
+       - ORA-02068
+       - ORA-03113
+       - ORA-03135
+       - ORA-12537
+       - ORA-16011
+       - ORA-16040
+       - ORA-16055
+       - ORA-16058
+       - ORA-16401
+       - ORA-00054
+       - ORA-01013
+       - ORA-01555
+       - ORA-28
+       - ORA-235
+       - ORA-609
+       - ORA-3136
+       - ABORT_REDEF_TABLE
 
  - connection: <user>/<pass>@<tnsname>
    database: STAGE
    instance: STAGE
-   alertlog: /data/oracle/diag/rdbms/stage/STAGE/trace/alert_STAGE.log
-   ignoreora:
-    - ORA-01033
-    - ORA-01041
-    - ORA-01089
-    - ORA-02050
-    - ORA-02068
-    - ORA-03113
-    - ORA-03135
-    - ORA-12537
-    - ORA-16011
-    - ORA-16040
-    - ORA-16055
-    - ORA-16058
-    - ORA-16401
-    - ORA-00054
-    - ORA-01013
-    - ORA-01555
-    - ORA-28
-    - ORA-235
-    - ORA-609
-    - ORA-3136
-    - ABORT_REDEF_TABLE
+   alertlog:
+    - file: /data/oracle/diag/rdbms/stage/STAGE/trace/alert_STAGE.log
+      scantime: 300
+      ignoreora:
+       - ORA-01033
+       - ORA-01041
+       - ORA-01089
+       - ORA-02050
+       - ORA-02068
+       - ORA-03113
+       - ORA-03135
+       - ORA-12537
+       - ORA-16011
+       - ORA-16040
+       - ORA-16055
+       - ORA-16058
+       - ORA-16401
+       - ORA-00054
+       - ORA-01013
+       - ORA-01555
+       - ORA-28
+       - ORA-235
+       - ORA-609
+       - ORA-3136
+       - ABORT_REDEF_TABLE

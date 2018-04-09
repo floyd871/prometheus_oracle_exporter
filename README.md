@@ -20,14 +20,15 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
 - oracledb_redo (Redo log switches over last 5 min from v$log_history)
 - oracledb_cachehitratio (Cache hit ratios (v$sysmetric)
+- oracledb_error (Errors parsed from the alert.log)
 ...
 
 # Installation
 
-Ensure that the environment variable DATA_SOURCE_NAME is set correctly before starting. You can add multiple instances, if you run more than one instance on a host. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
+Ensure that the configfile (oracle.conf) is set correctly before starting. You can add multiple instances, if you run more than one instance on a host or. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
+It is now possible to scan the alert.log File. The metrics are exposed as a gauge metric with a total occurence of the specific ORA in a definied timeframe (scantime). 
 
 ```bash
-export DATA_SOURCE_NAME="system/oracle@myhost1;system/oracle@myhost2;system/oracle@myhost3"
 export NLS_LANG=AMERICAN_AMERICA.UTF8
 /path/to/binary -l log.level error -l web.listen-address 9161
 ```
