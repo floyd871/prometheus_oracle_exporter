@@ -3,9 +3,8 @@ package main
 import (
 		"database/sql"
 		"flag"
-	_	"net/http"
+		"net/http"
 		"time"
-  _ "fmt"
 	_ "github.com/mattn/go-oci8"
 		"github.com/prometheus/client_golang/prometheus"
 		"github.com/prometheus/common/log"
@@ -17,12 +16,17 @@ const (
 	exporter  = "exporter"
 )
 
+type Alert struct {
+	File string    		 `yaml:"file"`
+	Scantime int       `yaml:"scantime"`
+	Ignoreora []string `yaml:"ignoreora"`
+}
+
 type Config struct {
 	Connection string  `yaml:"connection"`
 	Database string    `yaml:"database"`
 	Instance string    `yaml:"instance"`
-	Alertlog string    `yaml:"alertlog"`
-	Ignoreora []string `yaml:"ignoreora"`
+	Alertlog []Alert 	 `yaml:"alertlog"`
 	db                 *sql.DB
 }
 
@@ -46,6 +50,7 @@ type Exporter struct {
 	recovery        *prometheus.GaugeVec
 	redo            *prometheus.GaugeVec
 	cache           *prometheus.GaugeVec
+	oraerror        *prometheus.GaugeVec
 }
 
 var (
@@ -141,6 +146,11 @@ func NewExporter() *Exporter {
 			Name:      "up",
 			Help:      "Whether the Oracle server is up.",
 		}, []string{"database","dbinstance"}),
+		oraerror: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "error",
+			Help:      "Oracle Errors occured during configured interval.",
+		}, []string{"database","dbinstance","type","name"}),
 	}
 }
 
@@ -445,6 +455,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
   e.cache.Describe(ch)
 	e.uptime.Describe(ch)
 	e.up.Describe(ch)
+	e.oraerror.Describe(ch)
 }
 
 // Connect the DBs and gather Databasename and Instancename
@@ -481,6 +492,7 @@ func (e *Exporter) Connect() {
   e.redo.Reset()
   e.cache.Reset()
 	e.uptime.Reset()
+	e.oraerror.Reset()
 }
 
 // Close Connections
@@ -540,6 +552,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.ScrapeCache()
 	e.cache.Collect(ch)
 
+  e.ScrapeOraerror()
+	e.oraerror.Collect(ch)
+
 	ch <- e.duration
 	ch <- e.totalScrapes
 	ch <- e.error
@@ -552,15 +567,14 @@ func main() {
 	flag.Parse()
 	log.Infoln("Starting Prometheus Oracle exporter " + Version)
 	if loadConfig() {
-/*		log.Infoln("Config loaded: ", *configFile)
+
+		log.Infoln("Config loaded: ", *configFile)
 		exporter := NewExporter()
 		prometheus.MustRegister(exporter)
 	  http.Handle(*metricPath, prometheus.Handler())
-	  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write(landingPage)
-	  })
+	  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {w.Write(landingPage)})
+
 	  log.Infoln("Listening on", *listenAddress)
-	  log.Fatal(http.ListenAndServe(*listenAddress, nil))*/
+	  log.Fatal(http.ListenAndServe(*listenAddress, nil))
 	}
-	processAlertlog(config.Cfgs[0].Alertlog)
 }
