@@ -1,6 +1,7 @@
 # Prometheus Oracle Exporter
 
-A [Prometheus](https://prometheus.io/) exporter for Oracle. Insipred from (https://github.com/iamseth/oracledb_exporter). I'm a DBA , PRs welcomed.
+A [Prometheus](https://prometheus.io/) exporter for Oracle.
+Insipred from (https://github.com/iamseth/oracledb_exporter).
 
 The following metrics are exposed currently. Support for RAC (databasename and instancename added via lables)
 
@@ -9,8 +10,9 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_exporter_scrapes_total
 - oracledb_uptime (days)
 - oracledb_session (view v$session system/user active/passive)
-- oracledb_sysmetric (view v$sysmetric (Physical Read Total IO Requests Per Sec / Physical Write Total IO Requests Per Sec
-					Physical Read Total Bytes Per Sec / Physical Write Total Bytes Per Sec)
+- oracledb_sysmetric (view v$sysmetric
+									(Physical Read Total IO Requests Per Sec / Physical Write Total IO Requests Per Sec
+					 				 Physical Read Total Bytes Per Sec / Physical Write Total Bytes Per Sec))
 - oracledb_sysstat (view v$sysstat (parse count (total) / execute count / user commits / user rollbacks))
 - oracledb_waitclass (view v$waitclass)
 - oracledb_tablespace (tablespace total/free)
@@ -34,6 +36,8 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 
 ```bash
 Usage of ./prometheus_oracle_exporter:
+	-configfile string
+		ConfigurationFile in YAML format. (default "oracle.conf")
   -web.listen-address string
     	Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
