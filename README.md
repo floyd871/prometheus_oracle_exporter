@@ -26,7 +26,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 # Installation
 
 Ensure that the configfile (oracle.conf) is set correctly before starting. You can add multiple instances, if you run more than one instance on a host or. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
-It is now possible to scan the alert.log File. The metrics are exposed as a gauge metric with a total occurence of the specific ORA in a definied timeframe (scantime). 
+It is now possible to scan the alert.log File. The metrics are exposed as a gauge metric with a total occurence of the specific ORA in a definied timeframe (scantime).
 
 ```bash
 export NLS_LANG=AMERICAN_AMERICA.UTF8
@@ -37,8 +37,8 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 
 ```bash
 Usage of ./prometheus_oracle_exporter:
-	-configfile string
-		ConfigurationFile in YAML format. (default "oracle.conf")
+  -configfile string
+	    ConfigurationFile in YAML format. (default "oracle.conf")
   -web.listen-address string
     	Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
