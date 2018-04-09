@@ -20,6 +20,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
 - oracledb_redo (Redo log switches over last 5 min from v$log_history)
 - oracledb_cachehitratio (Cache hit ratios (v$sysmetric)
+- oracledb_up (Whether the Oracle server is up)
 - oracledb_error (Errors parsed from the alert.log)
 ...
 
