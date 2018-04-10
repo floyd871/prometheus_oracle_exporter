@@ -23,7 +23,8 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_up (Whether the Oracle server is up)
 - oracledb_error (Errors parsed from the alert.log)
 - oracledb_services (Active Oracle Services (v$active_services))
-...
+- oracledb_parameter (Configuration Parameters (v$parameter))
+
 
 # Installation
 
@@ -40,7 +41,7 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 ```bash
 Usage of ./prometheus_oracle_exporter:
   -configfile string
-	    ConfigurationFile in YAML format. (default "oracle.conf")
+      ConfigurationFile in YAML format. (default "oracle.conf")
   -web.listen-address string
     	Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
