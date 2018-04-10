@@ -22,11 +22,12 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_cachehitratio (Cache hit ratios (v$sysmetric)
 - oracledb_up (Whether the Oracle server is up)
 - oracledb_error (Errors parsed from the alert.log)
+- oracledb_services (Active Oracle Services (v$active_services))
 ...
 
 # Installation
 
-Ensure that the configfile (oracle.conf) is set correctly before starting. You can add multiple instances, if you run more than one instance on a host or. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
+Ensure that the configfile (oracle.conf) is set correctly before starting. You can add multiple instances, e.g. the ASM instance. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
 It is now possible to scan the alert.log File. The metrics are exposed as a gauge metric with a total occurence of the specific ORA in a definied timeframe (scantime).
 
 ```bash

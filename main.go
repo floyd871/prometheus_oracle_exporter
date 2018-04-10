@@ -51,6 +51,7 @@ type Exporter struct {
 	redo            *prometheus.GaugeVec
 	cache           *prometheus.GaugeVec
 	oraerror        *prometheus.GaugeVec
+  services        *prometheus.GaugeVec
 }
 
 var (
@@ -151,8 +152,39 @@ func NewExporter() *Exporter {
 			Name:      "error",
 			Help:      "Oracle Errors occured during configured interval.",
 		}, []string{"database","dbinstance","type","name"}),
+		services: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "services",
+			Help:      "Active Oracle Services (v$active_services).",
+		}, []string{"database","dbinstance","name"}),
 	}
 }
+
+// ScrapeServices collects metrics from the v$active_services view.
+func (e *Exporter) ScrapeServices() {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	for _, conn := range config.Cfgs {
+		if conn.db != nil {
+			rows, err = conn.db.Query(`select name from v$active_services`)
+			if err != nil {
+				break
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var name string
+				if err := rows.Scan(&name); err != nil {
+					break
+				}
+				name = cleanName(name)
+		    e.services.WithLabelValues(conn.Database,conn.Instance,name).Set(1)
+			}
+		}
+	}
+}
+
 
 // ScrapeCache collects session metrics from the v$sysmetrics view.
 func (e *Exporter) ScrapeCache() {
@@ -456,6 +488,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.uptime.Describe(ch)
 	e.up.Describe(ch)
 	e.oraerror.Describe(ch)
+	e.services.Describe(ch)
 }
 
 // Connect the DBs and gather Databasename and Instancename
@@ -493,6 +526,7 @@ func (e *Exporter) Connect() {
   e.cache.Reset()
 	e.uptime.Reset()
 	e.oraerror.Reset()
+	e.services.Reset()
 }
 
 // Close Connections
@@ -554,6 +588,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
   e.ScrapeOraerror()
 	e.oraerror.Collect(ch)
+
+	e.ScrapeServices()
+	e.services.Collect(ch)
 
 	ch <- e.duration
 	ch <- e.totalScrapes

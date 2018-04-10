@@ -53,29 +53,30 @@ func (e *Exporter) ScrapeOraerror() {
 
     file, err := os.Open(config.Cfgs[conf].Alertlog[0].File)
     if err != nil {
-      log.Fatal(err)
-    }
-    defer file.Close()
+      log.Infoln(err)
+    } else{
+      file.Close()
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-      t, err := time.ParseInLocation(layout, scanner.Text(),loc)
-      if err == nil {
-        lastTime = t
-      } else {
-        if int(time.Now().Sub(lastTime).Seconds()) < config.Cfgs[conf].Alertlog[0].Scantime {
-          if re.MatchString(scanner.Text()) {
-            ora := re.FindString(scanner.Text())
-            addError(conf,ora, scanner.Text())
+      scanner := bufio.NewScanner(file)
+      for scanner.Scan() {
+        t, err := time.ParseInLocation(layout, scanner.Text(),loc)
+        if err == nil {
+          lastTime = t
+        } else {
+          if int(time.Now().Sub(lastTime).Seconds()) < config.Cfgs[conf].Alertlog[0].Scantime {
+            if re.MatchString(scanner.Text()) {
+              ora := re.FindString(scanner.Text())
+              addError(conf,ora, scanner.Text())
+            }
           }
         }
       }
-    }
-    for i, _ := range Errors {
-      e.oraerror.WithLabelValues(config.Cfgs[conf].Database,
-                                 config.Cfgs[conf].Instance,
-                                 Errors[i].ora,
-                                 Errors[i].text).Set(float64(Errors[i].count))
+      for i, _ := range Errors {
+        e.oraerror.WithLabelValues(config.Cfgs[conf].Database,
+                                   config.Cfgs[conf].Instance,
+                                   Errors[i].ora,
+                                   Errors[i].text).Set(float64(Errors[i].count))
+      }
     }
   }
 }
