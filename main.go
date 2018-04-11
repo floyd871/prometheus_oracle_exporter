@@ -152,7 +152,7 @@ func NewExporter() *Exporter {
 			Namespace: namespace,
 			Name:      "error",
 			Help:      "Oracle Errors occured during configured interval.",
-		}, []string{"database","dbinstance","type","name"}),
+		}, []string{"database","dbinstance","code","description","ignore"}),
 		services: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "services",

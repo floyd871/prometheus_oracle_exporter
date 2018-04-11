@@ -7,6 +7,13 @@ import (
     "github.com/prometheus/common/log"
 )
 
+func FormatBool(b bool) string {
+    if b {
+        return "1"
+    }
+    return "0"
+}
+
 // Oracle gives us some ugly names back. This function cleans things up for Prometheus.
 func cleanName(s string) string {
 	s = strings.Replace(s, " ", "_", -1) // Remove spaces

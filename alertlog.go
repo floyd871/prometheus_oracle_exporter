@@ -4,6 +4,7 @@ import (
    "bufio"
    "os"
    "time"
+  _ "fmt"
    "regexp"
    "strings"
    "github.com/prometheus/common/log"
@@ -12,7 +13,7 @@ import (
 type oraerr struct {
 	ora string
 	text string
-  ignore int
+  ignore bool
 	count int
 }
 
@@ -27,10 +28,10 @@ func addError(conf int, ora string, text string){
     }
   }
   if ! found {
-    ignore := 0
+    ignore := false
     for _ , e := range config.Cfgs[conf].Alertlog[0].Ignoreora {
       if e == ora {
-        ignore = 1
+        ignore = true
       }
     }
     i := strings.Index(text, " ")
@@ -55,8 +56,6 @@ func (e *Exporter) ScrapeOraerror() {
     if err != nil {
       log.Infoln(err)
     } else{
-      file.Close()
-
       scanner := bufio.NewScanner(file)
       for scanner.Scan() {
         t, err := time.ParseInLocation(layout, scanner.Text(),loc)
@@ -71,11 +70,13 @@ func (e *Exporter) ScrapeOraerror() {
           }
         }
       }
+      file.Close()
       for i, _ := range Errors {
         e.oraerror.WithLabelValues(config.Cfgs[conf].Database,
                                    config.Cfgs[conf].Instance,
                                    Errors[i].ora,
-                                   Errors[i].text).Set(float64(Errors[i].count))
+                                   Errors[i].text,
+                                   FormatBool(Errors[i].ignore)).Set(float64(Errors[i].count))
       }
     }
   }
