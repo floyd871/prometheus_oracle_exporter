@@ -43,7 +43,7 @@ Usage of ./prometheus_oracle_exporter:
   -configfile string
       ConfigurationFile in YAML format. (default "oracle.conf")
   -web.listen-address string
-    	Address to listen on for web interface and telemetry. (default ":9161")
+      Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
-    	Path under which to expose metrics. (default "/metrics")
+      Path under which to expose metrics. (default "/metrics")
 ```

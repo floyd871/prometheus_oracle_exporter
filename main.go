@@ -368,9 +368,9 @@ func (e *Exporter) ScrapeTablespace() {
 				if err := rows.Scan(&name, &contents, &tsize, &tfree); err != nil {
 					break
 				}
-		    e.tablespace.WithLabelValues(conn.Database,conn.Instance,name,"total",contents).Set(tsize)
-		    e.tablespace.WithLabelValues(conn.Database,conn.Instance,name,"free",contents).Set(tfree)
-		    e.tablespace.WithLabelValues(conn.Database,conn.Instance,name,"used",contents).Set(tsize-tfree)
+		    e.tablespace.WithLabelValues(conn.Database,conn.Instance,"total",name,contents).Set(tsize)
+		    e.tablespace.WithLabelValues(conn.Database,conn.Instance,"free",name,contents).Set(tfree)
+		    e.tablespace.WithLabelValues(conn.Database,conn.Instance,"used",name,contents).Set(tsize-tfree)
 			}
 		}
 	}
