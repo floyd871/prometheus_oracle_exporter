@@ -7,6 +7,7 @@ import (
     "github.com/prometheus/common/log"
 		"os"
 		"time"
+		"path/filepath"
 )
 
 func FormatBool(b bool) string {
@@ -27,7 +28,7 @@ func cleanName(s string) string {
 }
 
 func loadConfig() bool {
-	pwd, err := os.Getwd()
+  pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
   if err != nil {
 		log.Fatalf("error: %v", err)
   }
