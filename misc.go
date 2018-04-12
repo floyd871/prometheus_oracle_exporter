@@ -6,7 +6,6 @@ import (
     "gopkg.in/yaml.v2"
     "github.com/prometheus/common/log"
 		"os"
-		"strconv"
 		"time"
 )
 
@@ -43,12 +42,14 @@ func loadConfig() bool {
 			return false
 	  }
 		for conf, _ := range config.Cfgs {
-			file :=  pwd + "/prometheus_" + strconv.Itoa(conf) + ".dat"
+			file :=  pwd + "/prometheus_" + config.Cfgs[conf].Instance + ".dat"
 			config.Cfgs[conf].Alertlog[0].lastfile = file
 			content, err := ioutil.ReadFile(file)
 			if err == nil {
 				t, _ := time.Parse(layout,string(content))
 				config.Cfgs[conf].Alertlog[0].lasttime = t
+			}else{
+				config.Cfgs[conf].Alertlog[0].lasttime = time.Now()
 			}
     }
 		return true
