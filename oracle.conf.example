@@ -4,7 +4,6 @@ connections:
    instance: DEVELOP
    alertlog:
     - file: /data/oracle/diag/rdbms/develop/DEVELOP/trace/alert_DEVELOP.log
-      scantime: 300
       ignoreora:
        - ORA-00001
        - ORA-01033
@@ -34,7 +33,6 @@ connections:
    instance: STAGE
    alertlog:
     - file: /data/oracle/diag/rdbms/stage/STAGE/trace/alert_STAGE.log
-      scantime: 300
       ignoreora:
        - ORA-01033
        - ORA-01041
