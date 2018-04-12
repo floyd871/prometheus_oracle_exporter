@@ -3,9 +3,10 @@ package main
 import (
 		"database/sql"
 		"flag"
+		"net"
 		"net/http"
 		"time"
-	_ "github.com/mattn/go-oci8"
+//	_ "github.com/mattn/go-oci8"
 		"github.com/prometheus/client_golang/prometheus"
 		"github.com/prometheus/common/log"
 )
@@ -54,6 +55,8 @@ type Exporter struct {
 	oraerror        *prometheus.GaugeVec
   services        *prometheus.GaugeVec
 	parameter       *prometheus.GaugeVec
+
+        lastIp		string
 }
 
 var (
@@ -642,6 +645,13 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
   e.Close()
 }
 
+func (e *Exporter) Handler(w http.ResponseWriter, r *http.Request) {
+  ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+  //TODO: error handling
+  e.lastIp = ip
+  prometheus.Handler().ServeHTTP(w, r)
+}
+
 func main() {
 	flag.Parse()
 	log.Infoln("Starting Prometheus Oracle exporter " + Version)
@@ -650,7 +660,10 @@ func main() {
 		log.Infoln("Config loaded: ", *configFile)
 		exporter := NewExporter()
 		prometheus.MustRegister(exporter)
-	  http.Handle(*metricPath, prometheus.Handler())
+
+//	  http.Handle(*metricPath, prometheus.Handler())
+	  http.HandleFunc(*metricPath, exporter.Handler)
+
 	  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {w.Write(landingPage)})
 
 	  log.Infoln("Listening on", *listenAddress)

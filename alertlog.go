@@ -43,6 +43,8 @@ func addError(conf int, ora string, text string){
 }
 
 func (e *Exporter) ScrapeOraerror() {
+  log.Infoln("Request from: " +  e.lastIp)
+
   loc     := time.Now().Location()
   re      := regexp.MustCompile(`ORA-[0-9]+`)
 
