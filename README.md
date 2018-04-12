@@ -10,8 +10,8 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_uptime (days)
 - oracledb_session (view v$session system/user active/passive)
 - oracledb_sysmetric (view v$sysmetric
-									(Physical Read Total IO Requests Per Sec / Physical Write Total IO Requests Per Sec
-					 				 Physical Read Total Bytes Per Sec / Physical Write Total Bytes Per Sec))
+                  (Physical Read Total IO Requests Per Sec / Physical Write Total IO Requests Per Sec
+                   Physical Read Total Bytes Per Sec / Physical Write Total Bytes Per Sec))
 - oracledb_sysstat (view v$sysstat (parse count (total) / execute count / user commits / user rollbacks))
 - oracledb_waitclass (view v$waitclass)
 - oracledb_tablespace (tablespace total/free)

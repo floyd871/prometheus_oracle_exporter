@@ -6,17 +6,38 @@ import (
    "time"
    "regexp"
    "strings"
+   "io/ioutil"
    "github.com/prometheus/common/log"
 )
 
 type oraerr struct {
-	ora string
-	text string
+  ora string
+  text string
   ignore bool
-	count int
+  count int
 }
 
 var Errors []oraerr
+
+func (e *Exporter) GetLastScrapeTime(conf int) time.Time {
+  file :=  pwd + "/prometheus_" + config.Cfgs[conf].Instance + "_" + cleanIp(e.lastIp) + ".dat"
+  content, err := ioutil.ReadFile(file)
+  if err == nil {
+    t, _ := time.Parse("2006-01-02 15:04:05 -0700 MST",string(content))
+    return t
+  }
+  return time.Now()
+}
+
+func (e *Exporter) SetLastScrapeTime(conf int,t time.Time) {
+  file :=  pwd + "/prometheus_" + config.Cfgs[conf].Instance + "_" + cleanIp(e.lastIp) + ".dat"
+  fh, err := os.Create(file)
+  if err == nil {
+   fh.WriteString(t.String())
+   fh.Close()
+  }
+}
+
 
 func addError(conf int, ora string, text string){
   var found bool = false
@@ -43,14 +64,13 @@ func addError(conf int, ora string, text string){
 }
 
 func (e *Exporter) ScrapeOraerror() {
-  log.Infoln("Request from: " +  e.lastIp)
-
   loc     := time.Now().Location()
   re      := regexp.MustCompile(`ORA-[0-9]+`)
 
   for conf, _ := range config.Cfgs {
     var lastTime time.Time
     Errors = nil
+    lastScrapeTime := e.GetLastScrapeTime(conf)
 
     file, err := os.Open(config.Cfgs[conf].Alertlog[0].File)
     if err != nil {
@@ -58,11 +78,11 @@ func (e *Exporter) ScrapeOraerror() {
     } else{
       scanner := bufio.NewScanner(file)
       for scanner.Scan() {
-        t, err := time.ParseInLocation(layout, scanner.Text(),loc)
+        t, err := time.ParseInLocation(oralayout, scanner.Text(),loc)
         if err == nil {
           lastTime = t
         } else {
-          if lastTime.After(config.Cfgs[conf].Alertlog[0].lasttime) {
+          if lastTime.After(lastScrapeTime) {
             if re.MatchString(scanner.Text()) {
               ora := re.FindString(scanner.Text())
               addError(conf,ora, scanner.Text())
@@ -71,12 +91,7 @@ func (e *Exporter) ScrapeOraerror() {
         }
       }
       file.Close()
-      //  Write last known date from alertlog
-      file, err := os.Create(config.Cfgs[conf].Alertlog[0].lastfile)
-      if err == nil {
-        file.WriteString(lastTime.String())
-        file.Close()
-      }
+      e.SetLastScrapeTime(conf,lastTime)
       for i, _ := range Errors {
         e.oraerror.WithLabelValues(config.Cfgs[conf].Database,
                                    config.Cfgs[conf].Instance,
