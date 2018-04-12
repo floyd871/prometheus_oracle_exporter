@@ -13,12 +13,13 @@ import (
 type oraerr struct {
   ora string
   text string
-  ignore bool
+  ignore string
   count int
 }
 
 var Errors []oraerr
 
+// Get individual ScrapeTime per Prometheus instance for alertlog
 func (e *Exporter) GetLastScrapeTime(conf int) time.Time {
   file :=  pwd + "/prometheus_" + config.Cfgs[conf].Instance + "_" + cleanIp(e.lastIp) + ".dat"
   content, err := ioutil.ReadFile(file)
@@ -29,6 +30,7 @@ func (e *Exporter) GetLastScrapeTime(conf int) time.Time {
   return time.Now()
 }
 
+// Set individual ScrapeTime per Prometheus instance for alertlog
 func (e *Exporter) SetLastScrapeTime(conf int,t time.Time) {
   file :=  pwd + "/prometheus_" + config.Cfgs[conf].Instance + "_" + cleanIp(e.lastIp) + ".dat"
   fh, err := os.Create(file)
@@ -48,10 +50,10 @@ func addError(conf int, ora string, text string){
     }
   }
   if ! found {
-    ignore := false
+    ignore := "0"
     for _ , e := range config.Cfgs[conf].Alertlog[0].Ignoreora {
       if e == ora {
-        ignore = true
+        ignore = "1"
       }
     }
     i := strings.Index(text, " ")
@@ -63,7 +65,7 @@ func addError(conf int, ora string, text string){
   }
 }
 
-func (e *Exporter) ScrapeOraerror() {
+func (e *Exporter) ScrapeAlertlog() {
   loc     := time.Now().Location()
   re      := regexp.MustCompile(`ORA-[0-9]+`)
 
@@ -93,11 +95,11 @@ func (e *Exporter) ScrapeOraerror() {
       file.Close()
       e.SetLastScrapeTime(conf,lastTime)
       for i, _ := range Errors {
-        e.oraerror.WithLabelValues(config.Cfgs[conf].Database,
+        e.alertlog.WithLabelValues(config.Cfgs[conf].Database,
                                    config.Cfgs[conf].Instance,
                                    Errors[i].ora,
                                    Errors[i].text,
-                                   FormatBool(Errors[i].ignore)).Set(float64(Errors[i].count))
+                                   Errors[i].ignore).Set(float64(Errors[i].count))
       }
     }
   }

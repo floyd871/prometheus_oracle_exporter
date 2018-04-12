@@ -18,17 +18,15 @@ const (
 )
 
 type Alert struct {
-  File string         `yaml:"file"`
+  File string        `yaml:"file"`
   Ignoreora []string `yaml:"ignoreora"`
-  lastfile string
-  lasttime time.Time
 }
 
 type Config struct {
   Connection string  `yaml:"connection"`
   Database string    `yaml:"database"`
   Instance string    `yaml:"instance"`
-  Alertlog []Alert    `yaml:"alertlog"`
+  Alertlog []Alert   `yaml:"alertlog"`
   db                 *sql.DB
 }
 
@@ -44,7 +42,7 @@ type Exporter struct {
   session         *prometheus.GaugeVec
   sysstat         *prometheus.GaugeVec
   waitclass       *prometheus.GaugeVec
-  sysmetric        *prometheus.GaugeVec
+  sysmetric       *prometheus.GaugeVec
   interconnect    *prometheus.GaugeVec
   uptime          *prometheus.GaugeVec
   up              *prometheus.GaugeVec
@@ -52,7 +50,7 @@ type Exporter struct {
   recovery        *prometheus.GaugeVec
   redo            *prometheus.GaugeVec
   cache           *prometheus.GaugeVec
-  oraerror        *prometheus.GaugeVec
+  alertlog        *prometheus.GaugeVec
   services        *prometheus.GaugeVec
   parameter       *prometheus.GaugeVec
   lastIp          string
@@ -153,7 +151,7 @@ func NewExporter() *Exporter {
       Name:      "up",
       Help:      "Whether the Oracle server is up.",
     }, []string{"database","dbinstance"}),
-    oraerror: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+    alertlog: prometheus.NewGaugeVec(prometheus.GaugeOpts{
       Namespace: namespace,
       Name:      "error",
       Help:      "Oracle Errors occured during configured interval.",
@@ -527,7 +525,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
   e.cache.Describe(ch)
   e.uptime.Describe(ch)
   e.up.Describe(ch)
-  e.oraerror.Describe(ch)
+  e.alertlog.Describe(ch)
   e.services.Describe(ch)
   e.parameter.Describe(ch)
 }
@@ -566,7 +564,7 @@ func (e *Exporter) Connect() {
   e.redo.Reset()
   e.cache.Reset()
   e.uptime.Reset()
-  e.oraerror.Reset()
+  e.alertlog.Reset()
   e.services.Reset()
   e.parameter.Reset()
 }
@@ -628,8 +626,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
   e.ScrapeCache()
   e.cache.Collect(ch)
 
-  e.ScrapeOraerror()
-  e.oraerror.Collect(ch)
+  e.ScrapeAlertlog()
+  e.alertlog.Collect(ch)
 
   e.ScrapeServices()
   e.services.Collect(ch)
@@ -646,11 +644,10 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (e *Exporter) Handler(w http.ResponseWriter, r *http.Request) {
+  e.lastIp = ""
   ip, _, err := net.SplitHostPort(r.RemoteAddr)
   if err == nil {
     e.lastIp = ip
-  } else {
-    e.lastIp = ""
   }
   prometheus.Handler().ServeHTTP(w, r)
 }
@@ -664,7 +661,6 @@ func main() {
     exporter := NewExporter()
     prometheus.MustRegister(exporter)
 
-//    http.Handle(*metricPath, prometheus.Handler())
     http.HandleFunc(*metricPath, exporter.Handler)
 
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {w.Write(landingPage)})
