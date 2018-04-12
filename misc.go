@@ -5,6 +5,9 @@ import (
     "io/ioutil"
     "gopkg.in/yaml.v2"
     "github.com/prometheus/common/log"
+		"os"
+		"strconv"
+		"time"
 )
 
 func FormatBool(b bool) string {
@@ -25,6 +28,10 @@ func cleanName(s string) string {
 }
 
 func loadConfig() bool {
+	pwd, err := os.Getwd()
+  if err != nil {
+		log.Fatalf("error: %v", err)
+  }
   content, err := ioutil.ReadFile(*configFile)
 	if err != nil {
 			log.Fatalf("error: %v", err)
@@ -35,6 +42,15 @@ func loadConfig() bool {
 			log.Fatalf("error: %v", err)
 			return false
 	  }
+		for conf, _ := range config.Cfgs {
+			file :=  pwd + "/prometheus_" + strconv.Itoa(conf) + ".dat"
+			config.Cfgs[conf].Alertlog[0].lastfile = file
+			content, err := ioutil.ReadFile(file)
+			if err == nil {
+				t, _ := time.Parse(layout,string(content))
+				config.Cfgs[conf].Alertlog[0].lasttime = t
+			}
+    }
 		return true
   }
 }

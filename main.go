@@ -18,8 +18,9 @@ const (
 
 type Alert struct {
 	File string    		 `yaml:"file"`
-	Scantime int       `yaml:"scantime"`
 	Ignoreora []string `yaml:"ignoreora"`
+	lastfile string
+	lasttime time.Time
 }
 
 type Config struct {
@@ -63,6 +64,7 @@ var (
 	configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
 	landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
 	config 				Configs
+	layout        = "Mon Jan 02 15:04:05 2006"
 )
 
 

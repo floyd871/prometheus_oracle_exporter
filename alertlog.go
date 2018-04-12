@@ -4,7 +4,6 @@ import (
    "bufio"
    "os"
    "time"
-  _ "fmt"
    "regexp"
    "strings"
    "github.com/prometheus/common/log"
@@ -44,7 +43,6 @@ func addError(conf int, ora string, text string){
 }
 
 func (e *Exporter) ScrapeOraerror() {
-  layout  := "Mon Jan 02 15:04:05 2006"
   loc     := time.Now().Location()
   re      := regexp.MustCompile(`ORA-[0-9]+`)
 
@@ -62,7 +60,7 @@ func (e *Exporter) ScrapeOraerror() {
         if err == nil {
           lastTime = t
         } else {
-          if int(time.Now().Sub(lastTime).Seconds()) < config.Cfgs[conf].Alertlog[0].Scantime {
+          if lastTime.After(config.Cfgs[conf].Alertlog[0].lasttime) {
             if re.MatchString(scanner.Text()) {
               ora := re.FindString(scanner.Text())
               addError(conf,ora, scanner.Text())
@@ -71,6 +69,12 @@ func (e *Exporter) ScrapeOraerror() {
         }
       }
       file.Close()
+      //  Write last known date from alertlog
+      file, err := os.Create(config.Cfgs[conf].Alertlog[0].lastfile)
+      if err == nil {
+        file.WriteString(lastTime.String())
+        file.Close()
+      }
       for i, _ := range Errors {
         e.oraerror.WithLabelValues(config.Cfgs[conf].Database,
                                    config.Cfgs[conf].Instance,
