@@ -27,7 +27,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
-Yo can define your on Queries and execute and scrape them
+Yo can define your own Queries and execute/scrape them
 
 # Installation
 
@@ -44,7 +44,7 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 ```bash
 Usage of ./prometheus_oracle_exporter:
   -configfile string
-      ConfigurationFile in YAML format. (default "oracle.conf")
+      Configuration file in YAML format. (default "oracle.conf")
   -web.listen-address string
       Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string

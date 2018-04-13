@@ -132,7 +132,7 @@ func NewExporter() *Exporter {
       Namespace: namespace,
       Name:      "tablespace",
       Help:      "Gauge metric with total/free size of the Tablespaces.",
-    }, []string{"database","dbinstance","type","name","contents"}),
+    }, []string{"database","dbinstance","type","name","contents","autoextend"}),
     interconnect: prometheus.NewGaugeVec(prometheus.GaugeOpts{
       Namespace: namespace,
       Name:      "interconnect",
@@ -386,17 +386,17 @@ func (e *Exporter) ScrapeTablespace() {
   for _, conn := range config.Cfgs {
     if conn.db != nil {
       rows, err = conn.db.Query(`WITH
-                                   getsize AS (SELECT tablespace_name, SUM(bytes) tsize
-                                               FROM dba_data_files GROUP BY tablespace_name),
+                                   getsize AS (SELECT tablespace_name, autoextensible, SUM(bytes) tsize
+                                               FROM dba_data_files GROUP BY tablespace_name, autoextensible),
                                    getfree as (SELECT tablespace_name, contents, SUM(blocks*block_size) tfree
                                                FROM DBA_LMT_FREE_SPACE a, v$tablespace b, dba_tablespaces c
                                                WHERE a.TABLESPACE_ID= b.ts# and b.name=c.tablespace_name
                                                GROUP BY tablespace_name,contents)
-                                 SELECT a.tablespace_name, b.contents, a.tsize,  b.tfree
+                                 SELECT a.tablespace_name, b.contents, a.tsize,  b.tfree, a.autoextensible autoextend
                                  FROM GETSIZE a, GETFREE b
                                  WHERE a.tablespace_name = b.tablespace_name
                                  UNION
-                                 SELECT tablespace_name, 'TEMPORARY', sum(tablespace_size), sum(free_space)
+                                 SELECT tablespace_name, 'TEMPORARY', sum(tablespace_size), sum(free_space), 'NO'
                                  FROM dba_temp_free_space
                                  GROUP BY tablespace_name`)
       if err != nil {
@@ -408,12 +408,13 @@ func (e *Exporter) ScrapeTablespace() {
         var contents string
         var tsize float64
         var tfree float64
-        if err := rows.Scan(&name, &contents, &tsize, &tfree); err != nil {
+        var auto string
+        if err := rows.Scan(&name, &contents, &tsize, &tfree, &auto); err != nil {
           break
         }
-        e.tablespace.WithLabelValues(conn.Database,conn.Instance,"total",name,contents).Set(tsize)
-        e.tablespace.WithLabelValues(conn.Database,conn.Instance,"free",name,contents).Set(tfree)
-        e.tablespace.WithLabelValues(conn.Database,conn.Instance,"used",name,contents).Set(tsize-tfree)
+        e.tablespace.WithLabelValues(conn.Database,conn.Instance,"total",name,contents,auto).Set(tsize)
+        e.tablespace.WithLabelValues(conn.Database,conn.Instance,"free",name,contents,auto).Set(tfree)
+        e.tablespace.WithLabelValues(conn.Database,conn.Instance,"used",name,contents,auto).Set(tsize-tfree)
       }
     }
   }
