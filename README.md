@@ -36,7 +36,7 @@ Ensure that the configfile (oracle.conf) is set correctly before starting. You c
 
 ```bash
 export NLS_LANG=AMERICAN_AMERICA.UTF8
-/path/to/binary -l log.level error -l web.listen-address 9161
+/path/to/binary -configfile=/home/user/oracle.conf -web.listen-address :9161
 ```
 
 ## Usage
