@@ -22,11 +22,17 @@ type Alert struct {
   Ignoreora []string `yaml:"ignoreora"`
 }
 
+type Query struct {
+  Sql string         `yaml:"sql"`
+  Name string        `yaml:"name"`
+}
+
 type Config struct {
   Connection string  `yaml:"connection"`
   Database string    `yaml:"database"`
   Instance string    `yaml:"instance"`
   Alertlog []Alert   `yaml:"alertlog"`
+  Queries []Query    `yaml:"queries"`
   db                 *sql.DB
 }
 
@@ -53,6 +59,7 @@ type Exporter struct {
   alertlog        *prometheus.GaugeVec
   services        *prometheus.GaugeVec
   parameter       *prometheus.GaugeVec
+  query           *prometheus.GaugeVec
   lastIp          string
 }
 
@@ -166,6 +173,39 @@ func NewExporter() *Exporter {
       Name:      "parameter",
       Help:      "oracle Configuration Parameters (v$parameter).",
     }, []string{"database","dbinstance","name"}),
+    query: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+      Namespace: namespace,
+      Name:      "query",
+      Help:      "Self defined Queries from Configuration File.",
+    }, []string{"database","dbinstance","name"}),
+  }
+}
+
+// ScrapeQuery collects metrics from self defined queries from configuration file.
+func (e *Exporter) ScrapeQuery() {
+  var (
+    rows *sql.Rows
+    err  error
+  )
+  for _, conn := range config.Cfgs {
+    //num  metric_name
+    //43  sessions
+    if conn.db != nil {
+      for _, query := range conn.Queries {
+        rows, err = conn.db.Query(query.Sql)
+        if err != nil {
+          break
+        }
+        defer rows.Close()
+        for rows.Next() {
+          var value float64
+          if err := rows.Scan(&value); err != nil {
+            break
+          }
+          e.query.WithLabelValues(conn.Database,conn.Instance,query.Name).Set(value)
+        }
+      }
+    }
   }
 }
 
@@ -528,6 +568,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
   e.alertlog.Describe(ch)
   e.services.Describe(ch)
   e.parameter.Describe(ch)
+  e.query.Describe(ch)
 }
 
 // Connect the DBs and gather Databasename and Instancename
@@ -567,6 +608,7 @@ func (e *Exporter) Connect() {
   e.alertlog.Reset()
   e.services.Reset()
   e.parameter.Reset()
+  e.query.Reset()
 }
 
 // Close Connections
@@ -634,6 +676,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
   e.ScrapeParameter()
   e.parameter.Collect(ch)
+
+  e.ScrapeQuery()
+  e.query.Collect(ch)
 
   ch <- e.duration
   ch <- e.totalScrapes
