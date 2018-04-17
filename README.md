@@ -15,6 +15,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_sysstat (view v$sysstat (parse count (total) / execute count / user commits / user rollbacks))
 - oracledb_waitclass (view v$waitclass)
 - oracledb_tablespace (tablespace total/free)
+- oracledb_asmspace (Space in ASM (v$asm_disk/v$asm_diskgroup))
 - oracledb_interconnect (view v$sysstat (gc cr blocks served / gc cr blocks flushed / gc cr blocks received))
 - oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
 - oracledb_redo (Redo log switches over last 5 min from v$log_history)
@@ -24,7 +25,6 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_services (Active Oracle Services (v$active_services))
 - oracledb_parameter (Configuration Parameters (v$parameter))
 - oracledb_query (Self defined Queries in Configuration File)
-
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
 Yo can define your own Queries and execute/scrape them

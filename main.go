@@ -60,6 +60,7 @@ type Exporter struct {
   services        *prometheus.GaugeVec
   parameter       *prometheus.GaugeVec
   query           *prometheus.GaugeVec
+  asmspace        *prometheus.GaugeVec
   lastIp          string
 }
 
@@ -178,6 +179,11 @@ func NewExporter() *Exporter {
       Name:      "query",
       Help:      "Self defined Queries from Configuration File.",
     }, []string{"database","dbinstance","name"}),
+    asmspace: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+      Namespace: namespace,
+      Name:      "asmspace",
+      Help:      "Gauge metric with total/free size of the ASM Diskgroups.",
+    }, []string{"database","dbinstance","type","name"}),
   }
 }
 
@@ -377,6 +383,39 @@ func (e *Exporter) ScrapeInterconnect() {
   }
 }
 
+// ScrapeAsmspace collects ASM metrics
+func (e *Exporter) ScrapeAsmspace() {
+  var (
+    rows *sql.Rows
+    err  error
+  )
+  for _, conn := range config.Cfgs {
+    if conn.db != nil {
+      rows, err = conn.db.Query(`SELECT g.name, sum(d.total_mb), sum(d.free_mb)
+                                  FROM v$asm_disk d, v$asm_diskgroup g
+                                 WHERE  d.group_number = g.group_number (+)
+                                  AND  d.header_status = 'MEMBER'
+                                 GROUP by  g.name,  g.group_number`)
+      if err != nil {
+        break
+      }
+      defer rows.Close()
+      for rows.Next() {
+        var name string
+        var tsize float64
+        var tfree float64
+        if err := rows.Scan(&name, &tsize, &tfree); err != nil {
+          break
+        }
+        e.asmspace.WithLabelValues(conn.Database,conn.Instance,"total",name).Set(tsize)
+        e.asmspace.WithLabelValues(conn.Database,conn.Instance,"free",name).Set(tfree)
+        e.asmspace.WithLabelValues(conn.Database,conn.Instance,"used",name).Set(tsize-tfree)
+      }
+    }
+  }
+}
+
+
 // ScrapeTablespaces collects tablespace metrics
 func (e *Exporter) ScrapeTablespace() {
   var (
@@ -570,6 +609,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
   e.services.Describe(ch)
   e.parameter.Describe(ch)
   e.query.Describe(ch)
+  e.asmspace.Describe(ch)
 }
 
 // Connect the DBs and gather Databasename and Instancename
@@ -610,6 +650,7 @@ func (e *Exporter) Connect() {
   e.services.Reset()
   e.parameter.Reset()
   e.query.Reset()
+  e.asmspace.Reset()
 }
 
 // Close Connections
@@ -680,6 +721,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
   e.ScrapeQuery()
   e.query.Collect(ch)
+
+  e.ScrapeAsmspace()
+  e.asmspace.Collect(ch)
 
   ch <- e.duration
   ch <- e.totalScrapes
