@@ -616,21 +616,28 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 func (e *Exporter) Connect() {
   var dbname string
   var inname string
+  var err error
 
   for i, conf := range config.Cfgs {
-    config.Cfgs[i].db = nil
-    db , err := sql.Open("oci8", conf.Connection)
+    // Close Connect from former scrape that not closed properly
+    if config.Cfgs[i].db != nil {
+       config.Cfgs[i].db.Close()
+       config.Cfgs[i].db = nil
+    }
+    config.Cfgs[i].db , err = sql.Open("oci8", conf.Connection)
     if err == nil {
-      err = db.QueryRow("select db_unique_name,instance_name from v$database,v$instance").Scan(&dbname,&inname)
+      err = config.Cfgs[i].db.QueryRow("select db_unique_name,instance_name from v$database,v$instance").Scan(&dbname,&inname)
       if err == nil {
         if (conf.Database != dbname) || (conf.Instance != inname) {
           config.Cfgs[i].Database = dbname
           config.Cfgs[i].Instance = inname
         }
-        config.Cfgs[i].db = db
         e.up.WithLabelValues(conf.Database,conf.Instance).Set(1)
       } else {
+        config.Cfgs[i].db.Close()
+        config.Cfgs[i].db = nil;
         e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
+        log.Infoln("Connect OK, Inital query failed: ", conf.Connection)
       }
     } else {
       e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
@@ -658,6 +665,7 @@ func (e *Exporter) Close() {
   for _, conn := range config.Cfgs {
     if conn.db != nil {
       conn.db.Close()
+      conn.db = nil
     }
   }
 }
@@ -746,7 +754,6 @@ func main() {
   flag.Parse()
   log.Infoln("Starting Prometheus Oracle exporter " + Version)
   if loadConfig() {
-
     log.Infoln("Config loaded: ", *configFile)
     exporter := NewExporter()
     prometheus.MustRegister(exporter)
