@@ -66,12 +66,14 @@ func addError(conf int, ora string, text string){
 }
 
 func (e *Exporter) ScrapeAlertlog() {
+  var noError bool
   loc     := time.Now().Location()
   re      := regexp.MustCompile(`ORA-[0-9]+`)
 
   for conf, _ := range config.Cfgs {
     var lastTime time.Time
     Errors = nil
+    noError = true
     lastScrapeTime := e.GetLastScrapeTime(conf)
 
     file, err := os.Open(config.Cfgs[conf].Alertlog[0].File)
@@ -88,6 +90,7 @@ func (e *Exporter) ScrapeAlertlog() {
             if re.MatchString(scanner.Text()) {
               ora := re.FindString(scanner.Text())
               addError(conf,ora, scanner.Text())
+              noError = false
             }
           }
         }
@@ -101,6 +104,11 @@ func (e *Exporter) ScrapeAlertlog() {
                                    Errors[i].text,
                                    Errors[i].ignore).Set(float64(Errors[i].count))
       }
+    }
+    if noError {
+      e.alertlog.WithLabelValues(config.Cfgs[conf].Database,
+                                 config.Cfgs[conf].Instance,
+                                 "ORA-0000","normal, successful completion","1").Set(0)
     }
   }
 }
