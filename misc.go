@@ -6,6 +6,7 @@ import (
     "gopkg.in/yaml.v2"
     "github.com/prometheus/common/log"
     "os"
+    "time"
     "path/filepath"
 )
 
@@ -42,5 +43,14 @@ func loadConfig() bool {
       return false
     }
     return true
+  }
+}
+
+func WriteLog(message string) {
+  file :=  pwd + "/" + *logFile
+  fh, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+  if err == nil {
+   fh.WriteString(time.Now().Format("2006-01-02 15:04:05") + " " + message + "\n")
+   fh.Close()
   }
 }

@@ -40,7 +40,6 @@ func (e *Exporter) SetLastScrapeTime(conf int,t time.Time) {
   }
 }
 
-
 func addError(conf int, ora string, text string){
   var found bool = false
   for i, _ := range Errors {
@@ -103,6 +102,7 @@ func (e *Exporter) ScrapeAlertlog() {
                                    Errors[i].ora,
                                    Errors[i].text,
                                    Errors[i].ignore).Set(float64(Errors[i].count))
+        WriteLog(config.Cfgs[conf].Instance + "(" + Errors[i].ignore + "): " + Errors[i].ora + " - " + Errors[i].text)
       }
     }
     if noError {

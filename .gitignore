@@ -1,3 +1,4 @@
 oracle.conf
 prometheus_oracle_exporter
-prometheus_*.dat
+*.dat
+*.log

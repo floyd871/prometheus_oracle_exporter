@@ -70,6 +70,7 @@ var (
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
   configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
+  logFile       = flag.String("logfile", "exporter.log", "Logfile for parsed Oracle Alerts.")
   landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
   config         Configs
   oralayout     = "Mon Jan 02 15:04:05 2006"
