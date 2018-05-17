@@ -1,0 +1,4 @@
+oracle.conf
+access.conf
+prometheus_oracle_exporter
+*.log
