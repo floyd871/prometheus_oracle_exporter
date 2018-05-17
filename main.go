@@ -17,29 +17,6 @@ const (
   exporter  = "exporter"
 )
 
-type Alert struct {
-  File string        `yaml:"file"`
-  Ignoreora []string `yaml:"ignoreora"`
-}
-
-type Query struct {
-  Sql string         `yaml:"sql"`
-  Name string        `yaml:"name"`
-}
-
-type Config struct {
-  Connection string  `yaml:"connection"`
-  Database string    `yaml:"database"`
-  Instance string    `yaml:"instance"`
-  Alertlog []Alert   `yaml:"alertlog"`
-  Queries []Query    `yaml:"queries"`
-  db                 *sql.DB
-}
-
-type Configs struct {
-  Cfgs []Config `yaml:"connections"`
-}
-
 // Exporter collects Oracle DB metrics. It implements prometheus.Collector.
 type Exporter struct {
   duration, error prometheus.Gauge
@@ -71,10 +48,8 @@ var (
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
   configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
   logFile       = flag.String("logfile", "exporter.log", "Logfile for parsed Oracle Alerts.")
+  accessFile    = flag.String("accessfile", "access.conf", "Last access for parsed Oracle Alerts.")
   landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
-  config         Configs
-  oralayout     = "Mon Jan 02 15:04:05 2006"
-  pwd           string
 )
 
 
