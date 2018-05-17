@@ -43,10 +43,14 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 
 ```bash
 Usage of ./prometheus_oracle_exporter:
+  -accessfile string
+    	Last access for parsed Oracle Alerts. (default "access.conf")
   -configfile string
-      Configuration file in YAML format. (default "oracle.conf")
+    	ConfigurationFile in YAML format. (default "oracle.conf")
+  -logfile string
+    	Logfile for parsed Oracle Alerts. (default "exporter.log")
   -web.listen-address string
-      Address to listen on for web interface and telemetry. (default ":9161")
+    	Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
-      Path under which to expose metrics. (default "/metrics")
+    	Path under which to expose metrics. (default "/metrics")
 ```
