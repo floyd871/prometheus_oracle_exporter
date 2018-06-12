@@ -34,6 +34,7 @@ type Exporter struct {
   redo            *prometheus.GaugeVec
   cache           *prometheus.GaugeVec
   alertlog        *prometheus.GaugeVec
+  alertdate       *prometheus.GaugeVec
   services        *prometheus.GaugeVec
   parameter       *prometheus.GaugeVec
   query           *prometheus.GaugeVec
@@ -43,7 +44,7 @@ type Exporter struct {
 
 var (
   // Version will be set at build time.
-  Version       = "1.0.1"
+  Version       = "1.0.2"
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
   configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
@@ -51,7 +52,6 @@ var (
   accessFile    = flag.String("accessfile", "access.conf", "Last access for parsed Oracle Alerts.")
   landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
 )
-
 
 // NewExporter returns a new Oracle DB exporter for the provided DSN.
 func NewExporter() *Exporter {
@@ -140,6 +140,11 @@ func NewExporter() *Exporter {
       Name:      "error",
       Help:      "Oracle Errors occured during configured interval.",
     }, []string{"database","dbinstance","code","description","ignore"}),
+    alertdate: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+      Namespace: namespace,
+      Name:      "error_unix_seconds",
+      Help:      "Unixtime of Alertlog modified Date.",
+    }, []string{"database","dbinstance"}),
     services: prometheus.NewGaugeVec(prometheus.GaugeOpts{
       Namespace: namespace,
       Name:      "services",
@@ -582,6 +587,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
   e.uptime.Describe(ch)
   e.up.Describe(ch)
   e.alertlog.Describe(ch)
+  e.alertdate.Describe(ch)
   e.services.Describe(ch)
   e.parameter.Describe(ch)
   e.query.Describe(ch)
@@ -630,6 +636,7 @@ func (e *Exporter) Connect() {
   e.cache.Reset()
   e.uptime.Reset()
   e.alertlog.Reset()
+  e.alertdate.Reset()
   e.services.Reset()
   e.parameter.Reset()
   e.query.Reset()
@@ -696,6 +703,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
   e.ScrapeAlertlog()
   e.alertlog.Collect(ch)
+  e.alertdate.Collect(ch)
 
   e.ScrapeServices()
   e.services.Collect(ch)

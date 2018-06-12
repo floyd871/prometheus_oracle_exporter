@@ -22,9 +22,11 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_cachehitratio (Cache hit ratios (v$sysmetric)
 - oracledb_up (Whether the Oracle server is up)
 - oracledb_error (Errors parsed from the alert.log)
+- oracledb_error_unix_seconds (Last modified Date of alert.log in Unixtime)
 - oracledb_services (Active Oracle Services (v$active_services))
 - oracledb_parameter (Configuration Parameters (v$parameter))
 - oracledb_query (Self defined Queries in Configuration File)
+
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
 Yo can define your own Queries and execute/scrape them

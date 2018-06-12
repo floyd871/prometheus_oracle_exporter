@@ -114,6 +114,7 @@ func (e *Exporter) ScrapeAlertlog() {
     Errors = nil
     lastScrapeTime := e.GetLastScrapeTime(conf).Add(time.Second)
 
+    info, _ := os.Stat(config.Cfgs[conf].Alertlog[0].File)
     file, err := os.Open(config.Cfgs[conf].Alertlog[0].File)
     if err != nil {
       log.Infoln(err)
@@ -144,6 +145,8 @@ func (e *Exporter) ScrapeAlertlog() {
                  "(" + Errors[i].ignore + "/" + strconv.Itoa(Errors[i].count) + "): " +
                  Errors[i].ora + " - " + Errors[i].text)
       }
+      e.alertdate.WithLabelValues(config.Cfgs[conf].Database,
+                                  config.Cfgs[conf].Instance).Set(float64(info.ModTime().Unix()))
     }
   }
   WriteAccess()
