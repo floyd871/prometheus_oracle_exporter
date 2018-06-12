@@ -43,7 +43,7 @@ type Exporter struct {
 
 var (
   // Version will be set at build time.
-  Version       = "1.0.0"
+  Version       = "1.0.1"
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
   configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")

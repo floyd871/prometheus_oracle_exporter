@@ -99,7 +99,7 @@ func addError(conf int, ora string, text string){
     ip := strings.Index(text, ". ")
     if is < 0 {; is = 0; }
     if ip < 0 {; ip = len(text); }
-    ora := oraerr{ora: ora, text: text[is+1:ip-is], ignore: ignore, count: 1}
+    ora := oraerr{ora: ora, text: text[is+1:ip], ignore: ignore, count: 1}
     Errors = append (Errors, ora)
   }
 }
