@@ -106,7 +106,7 @@ func addError(conf int, ora string, text string){
 
 func (e *Exporter) ScrapeAlertlog() {
   loc     := time.Now().Location()
-  re      := regexp.MustCompile(`ORA-[0-9]+`)
+  re      := regexp.MustCompile(`O(RA|GG)-[0-9]+`)
 
   ReadAccess()
   for conf, _ := range config.Cfgs {
