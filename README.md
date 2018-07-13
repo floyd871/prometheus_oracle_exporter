@@ -27,6 +27,10 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_parameter (Configuration Parameters (v$parameter))
 - oracledb_query (Self defined Queries in Configuration File)
 
+*TOOK VERY LONG, BE CAREFUL (Put the Metrics below in a separate Scrape-Config):
+- oracledb_tablerows (Number of Rows in Tables)
+- oracledb_tablebytes (Bytes used by Table and associated Indexes and LOB Segments)
+
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
 Yo can define your own Queries and execute/scrape them
@@ -35,6 +39,36 @@ Yo can define your own Queries and execute/scrape them
 
 Ensure that the configfile (oracle.conf) is set correctly before starting. You can add multiple instances, e.g. the ASM instance. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
 
+# Prometheus Configuration
+```
+scrape_configs:
+  - job_name: 'oracle-short'
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+        - oracle.host.com:9161
+    relabel_configs:
+     - source_labels: ['__address__']
+       target_label: instance
+       regex:  '(.*):\d+'
+       replacement: "${1}"
+
+  - job_name: 'oracle-long'
+    scrape_interval: 6h
+    scrape_timeout: 120s
+    metrics_path: /metrics
+    params:
+      tablebytes: [true]
+      tablerows: [true]
+    static_configs:
+      - targets:
+         - oracle.host.com:9161
+    relabel_configs:
+     - source_labels: ['__address__']
+       target_label: instance
+       regex:  '(.*):\d+'
+       replacement: "${1}"
+```
 
 ```bash
 export NLS_LANG=AMERICAN_AMERICA.UTF8
@@ -46,13 +80,17 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 ```bash
 Usage of ./prometheus_oracle_exporter:
   -accessfile string
-    	Last access for parsed Oracle Alerts. (default "access.conf")
+    Last access for parsed Oracle Alerts. (default "access.conf")
   -configfile string
-    	ConfigurationFile in YAML format. (default "oracle.conf")
+    ConfigurationFile in YAML format. (default "oracle.conf")
   -logfile string
-    	Logfile for parsed Oracle Alerts. (default "exporter.log")
+    Logfile for parsed Oracle Alerts. (default "exporter.log")
+  -tablebytes
+    Expose Table size (Table/Indexe/LOB) TOOK VERY LONG
+  -tablerows
+    Expose Table rows TOOK VERY LONG
   -web.listen-address string
-    	Address to listen on for web interface and telemetry. (default ":9161")
+    Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
-    	Path under which to expose metrics. (default "/metrics")
+    Path under which to expose metrics. (default "/metrics")
 ```

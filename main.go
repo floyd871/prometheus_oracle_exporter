@@ -39,18 +39,30 @@ type Exporter struct {
   parameter       *prometheus.GaugeVec
   query           *prometheus.GaugeVec
   asmspace        *prometheus.GaugeVec
+  tablerows       *prometheus.GaugeVec
+  tablebytes      *prometheus.GaugeVec
   lastIp          string
 }
 
 var (
   // Version will be set at build time.
-  Version       = "1.0.2"
+  Version       = "1.1.0"
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
+  cfgRows       = flag.Bool("tablerows", false, "Expose Table rows TOOK VERY LONG")
+  cfgBytes      = flag.Bool("tablebytes", false, "Expose Table size (Table/Indexe/LOB) TOOK VERY LONG")
   configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
   logFile       = flag.String("logfile", "exporter.log", "Logfile for parsed Oracle Alerts.")
   accessFile    = flag.String("accessfile", "access.conf", "Last access for parsed Oracle Alerts.")
-  landingPage   = []byte("<html><head><title>Prometheus Oracle exporter</title></head><body><h1>Prometheus Oracle exporter</h1><p><a href='" + *metricPath + "'>Metrics</a></p></body></html>")
+  landingPage   = []byte(`<html>
+                          <head><title>Prometheus Oracle exporter</title></head>
+                          <body>
+                            <h1>Prometheus Oracle exporter</h1><p>
+                            <a href='` + *metricPath + `'>Metrics</a></p>
+                            <a href='` + *metricPath + `?tablerows=true'>Metrics with tablerows</a></p>
+                            <a href='` + *metricPath + `?tablebytes=true'>Metrics with tablebytes</a></p>
+                          </body>
+                          </html>`)
 )
 
 // NewExporter returns a new Oracle DB exporter for the provided DSN.
@@ -165,6 +177,16 @@ func NewExporter() *Exporter {
       Name:      "asmspace",
       Help:      "Gauge metric with total/free size of the ASM Diskgroups.",
     }, []string{"database","dbinstance","type","name"}),
+      tablerows: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+      Namespace: namespace,
+      Name:      "tablerows",
+      Help:      "Gauge metric with rows of all Tables.",
+    }, []string{"database","dbinstance","owner","name","tablespace"}),
+    tablebytes: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+      Namespace: namespace,
+      Name:      "tablebytes",
+      Help:      "Gauge metric with bytes of all Tables seperated by Table/Index/LOB.",
+    }, []string{"database","dbinstance","owner","name","type"}),
   }
 }
 
@@ -569,6 +591,87 @@ func (e *Exporter) ScrapeSysmetric() {
   }
 }
 
+func (e *Exporter) ScrapeTablerows() {
+  var (
+    rows *sql.Rows
+    err  error
+  )
+  for _, conn := range config.Cfgs {
+    if conn.db != nil {
+      rows, err = conn.db.Query(`select owner,table_name, tablespace_name, num_rows
+                                 from dba_tables
+                                 where owner not like '%SYS%' and num_rows is not null`)
+      if err != nil {
+        break
+      }
+      defer rows.Close()
+      for rows.Next() {
+        var owner string
+        var name string
+        var space string
+        var value float64
+        if err := rows.Scan(&owner, &name, &space, &value); err != nil {
+          break
+        }
+        name = cleanName(name)
+        e.tablerows.WithLabelValues(conn.Database,conn.Instance,owner,name,space).Set(value)
+      }
+    }
+  }
+}
+
+func (e *Exporter) ScrapeTablebytes() {
+  var (
+    rows *sql.Rows
+    err  error
+  )
+  for _, conn := range config.Cfgs {
+    if conn.db != nil {
+      rows, err = conn.db.Query(`select tab.owner, tab.table_name,
+                                        decode(stab.bytes,null,0,stab.bytes),
+                                        decode(sind.indbytes,null,0,sind.indbytes),
+                                        decode(slob.lobbytes,null,0,slob.lobbytes)
+                                 from dba_tables tab
+                                 left join dba_segments stab on stab.owner=tab.owner and stab.segment_name=tab.table_name
+                                 left join (select table_owner owner, table_name, sum(bytes) indbytes from dba_indexes ind
+	                                          left join dba_segments seg on seg.owner=ind.table_owner and
+                                                                          seg.segment_name=ind.index_name
+			                                      group by table_owner,table_name) sind on sind.owner=tab.owner and
+                                                                                     sind.table_name=tab.table_name
+				                         left join (select lo.owner, lo.table_name, sum(bytes) lobbytes from dba_lobs lo
+					                                  left join dba_segments sl on sl.owner=lo.owner and
+                                                                         sl.segment_name=lo.segment_name
+							                              group by lo.owner,lo.table_name) slob on slob.owner=tab.owner and
+                                                                                     slob.table_name=tab.table_name
+                                 where tab.owner not like '%SYS%'`)
+      if err != nil {
+        break
+      }
+      defer rows.Close()
+      for rows.Next() {
+        var owner string
+        var name string
+        var valuet float64
+        var valuei float64
+        var valuel float64
+        if err = rows.Scan(&owner, &name, &valuet, &valuei, &valuel); err != nil {
+          break
+        }
+        name = cleanName(name)
+        if valuet > 0 {
+          e.tablebytes.WithLabelValues(conn.Database,conn.Instance,owner,name,"table").Set(valuet)
+        }
+        if valuei > 0 {
+          e.tablebytes.WithLabelValues(conn.Database,conn.Instance,owner,name,"index").Set(valuei)
+        }
+        if valuel > 0 {
+          e.tablebytes.WithLabelValues(conn.Database,conn.Instance,owner,name,"lob").Set(valuel)
+        }
+      }
+    }
+  }
+}
+
 
 // Describe describes all the metrics exported by the Oracle exporter.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
@@ -592,6 +695,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
   e.parameter.Describe(ch)
   e.query.Describe(ch)
   e.asmspace.Describe(ch)
+  e.tablebytes.Describe(ch)
+  e.tablerows.Describe(ch)
 }
 
 // Connect the DBs and gather Databasename and Instancename
@@ -641,6 +746,8 @@ func (e *Exporter) Connect() {
   e.parameter.Reset()
   e.query.Reset()
   e.asmspace.Reset()
+  e.tablerows.Reset()
+  e.tablebytes.Reset()
 }
 
 // Close Connections
@@ -717,6 +824,16 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
   e.ScrapeAsmspace()
   e.asmspace.Collect(ch)
 
+  if *cfgRows {
+    e.ScrapeTablerows()
+    e.tablerows.Collect(ch)
+  }
+
+  if *cfgBytes {
+    e.ScrapeTablebytes()
+    e.tablebytes.Collect(ch)
+  }
+
   ch <- e.duration
   ch <- e.totalScrapes
   ch <- e.error
@@ -731,6 +848,8 @@ func (e *Exporter) Handler(w http.ResponseWriter, r *http.Request) {
   if err == nil {
     e.lastIp = ip
   }
+  if r.URL.Query().Get("tablerows") == "true" {; *cfgRows = true; }
+  if r.URL.Query().Get("tablebytes") == "true" {; *cfgBytes = true; }
   prometheus.Handler().ServeHTTP(w, r)
 }
 
