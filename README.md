@@ -55,13 +55,29 @@ scrape_configs:
        regex:  '(.*):\d+'
        replacement: "${1}"
 
-  - job_name: 'oracle-long'
+  - job_name: 'oracle-tab'
+    scrape_interval: 6h
+    scrape_timeout: 120s
+    metrics_path: /metrics
+    params:
+      tablerows: [true]
+      lobbytes: [true]
+    static_configs:
+      - targets:
+         - oracle.host.com:9161
+    relabel_configs:
+     - source_labels: ['__address__']
+       target_label: instance
+       regex:  '(.*):\d+'
+       replacement: "${1}"
+
+  - job_name: 'oracle-ind'
     scrape_interval: 6h
     scrape_timeout: 120s
     metrics_path: /metrics
     params:
       tablebytes: [true]
-      tablerows: [true]
+      indexbytes: [true]
     static_configs:
       - targets:
          - oracle.host.com:9161
