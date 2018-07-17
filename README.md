@@ -29,7 +29,9 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 
 *TOOK VERY LONG, BE CAREFUL (Put the Metrics below in a separate Scrape-Config):
 - oracledb_tablerows (Number of Rows in Tables)
-- oracledb_tablebytes (Bytes used by Table and associated Indexes and LOB Segments)
+- oracledb_tablebytes (Bytes used by Table)
+- oracledb_indexbytes (Bytes used by Indexes of associated Table)
+- oracledb_lobbytes (Bytes used by Lobs of associated Table)
 
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
@@ -80,17 +82,21 @@ export NLS_LANG=AMERICAN_AMERICA.UTF8
 ```bash
 Usage of ./prometheus_oracle_exporter:
   -accessfile string
-    Last access for parsed Oracle Alerts. (default "access.conf")
+    	Last access for parsed Oracle Alerts. (default "access.conf")
   -configfile string
-    ConfigurationFile in YAML format. (default "oracle.conf")
+    	ConfigurationFile in YAML format. (default "oracle.conf")
+  -indexbytes
+    	Expose Index size for any Table (CAN TAKE VERY LONG)
+  -lobbytes
+    	Expose Lobs size for any Table (CAN TAKE VERY LONG)
   -logfile string
-    Logfile for parsed Oracle Alerts. (default "exporter.log")
+    	Logfile for parsed Oracle Alerts. (default "exporter.log")
   -tablebytes
-    Expose Table size (Table/Indexe/LOB) TOOK VERY LONG
+    	Expose Table size (CAN TAKE VERY LONG)
   -tablerows
-    Expose Table rows TOOK VERY LONG
+    	Expose Table rows (CAN TAKE VERY LONG)
   -web.listen-address string
-    Address to listen on for web interface and telemetry. (default ":9161")
+    	Address to listen on for web interface and telemetry. (default ":9161")
   -web.telemetry-path string
-    Path under which to expose metrics. (default "/metrics")
+    	Path under which to expose metrics. (default "/metrics")
 ```
