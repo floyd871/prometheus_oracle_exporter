@@ -69,15 +69,15 @@ func (e *Exporter) SetLastScrapeTime(conf int,t time.Time) {
     }
   }
   if indInst == -1 {
-    cln := Client{Ip: e.lastIp, Date: t.String()}
+    cln := Client{Ip: e.lastIp, Date: t.Format("2006-01-02 15:04:05 -0700 MST")}
     lastlog.Cfgs = append(lastlog.Cfgs, Lastlog{Instance: config.Cfgs[conf].Instance,
                                                 Clients:  []Client{ cln } } )
   }else{
     if indIp == -1 {
-      cln := Client{Ip: e.lastIp, Date: t.String()}
+      cln := Client{Ip: e.lastIp, Date: t.Format("2006-01-02 15:04:05 -0700 MST")}
       lastlog.Cfgs[indInst].Clients = append(lastlog.Cfgs[indInst].Clients, cln)
     }else{
-      lastlog.Cfgs[indInst].Clients[indIp].Date = t.String()
+      lastlog.Cfgs[indInst].Clients[indIp].Date = t.Format("2006-01-02 15:04:05 -0700 MST")
     }
   }
 }
@@ -141,8 +141,8 @@ func (e *Exporter) ScrapeAlertlog() {
                                    Errors[i].ora,
                                    Errors[i].text,
                                    Errors[i].ignore).Set(float64(Errors[i].count))
-        WriteLog(config.Cfgs[conf].Instance +
-                 "(" + Errors[i].ignore + "/" + strconv.Itoa(Errors[i].count) + "): " +
+        WriteLog(config.Cfgs[conf].Instance + " " + e.lastIp +
+                 " (" + Errors[i].ignore + "/" + strconv.Itoa(Errors[i].count) + "): " +
                  Errors[i].ora + " - " + Errors[i].text)
       }
       e.alertdate.WithLabelValues(config.Cfgs[conf].Database,
