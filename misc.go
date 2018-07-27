@@ -38,8 +38,18 @@ type Configs struct {
 
 var (
 	config Configs
-	pwd    string
 )
+
+func normalizePath(s string) string {
+	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	if filepath.IsAbs(s) {
+		return s
+	}
+	return filepath.Join(pwd, s)
+}
 
 // Oracle gives us some ugly names back. This function cleans things up for Prometheus.
 func cleanName(s string) string {
@@ -58,12 +68,7 @@ func cleanIp(s string) string {
 }
 
 func loadConfig() bool {
-	path, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	pwd = path
-	content, err := ioutil.ReadFile(*configFile)
+	content, err := ioutil.ReadFile(normalizePath(*configFile))
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return false
@@ -78,8 +83,7 @@ func loadConfig() bool {
 }
 
 func ReadAccess() {
-	var file = pwd + "/" + *accessFile
-	content, err := ioutil.ReadFile(file)
+	content, err := ioutil.ReadFile(normalizePath(*accessFile))
 	if err == nil {
 		err := yaml.Unmarshal(content, &lastlog)
 		if err != nil {
@@ -90,11 +94,11 @@ func ReadAccess() {
 
 func WriteAccess() {
 	content, _ := yaml.Marshal(&lastlog)
-	ioutil.WriteFile(pwd+"/"+*accessFile, content, 0644)
+	ioutil.WriteFile(normalizePath(*accessFile), content, 0644)
 }
 
 func WriteLog(message string) {
-	fh, err := os.OpenFile(pwd+"/"+*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	fh, err := os.OpenFile(normalizePath(*logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		fh.Seek(0, 2)
 		fh.WriteString(time.Now().Format("2006-01-02 15:04:05") + " " + message + "\n")
