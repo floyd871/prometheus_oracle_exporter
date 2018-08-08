@@ -17,15 +17,9 @@ connections:
     - file: /u01/app/oracle/product/12.1.0/gg_12201/ggserr.log
       ogg: true
       ignore:
-        - ORA-00001
-        - ORA-01033
-        - ORA-01041
-        - ORA-01089
-        - ORA-01555
-        - ORA-28
-        - ORA-235
-        - ORA-609
-        - ORA-3136
+        - OGG-123
+        - OGG-456
+        - OGG-789
    queries:
     - sql: "select 1 from dual"
       name: sample1
