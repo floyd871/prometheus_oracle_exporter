@@ -79,8 +79,8 @@ func (e *Exporter) SetLastScrapeTime(conf int, t time.Time) {
 	}
 }
 
-func isIgnored(conf int, err string) bool {
-	for _, e := range config.Cfgs[conf].Alertlog[0].Ignore {
+func isIgnored(conf int, alertConf int, err string) bool {
+	for _, e := range config.Cfgs[conf].Alertlog[alertConf].Ignore {
 		if e == err {
 			return true
 		}
@@ -111,65 +111,67 @@ func (e *Exporter) ScrapeAlertlog() {
 	ReadAccess()
 	for conf, _ := range config.Cfgs {
 		var lastTime time.Time
-		Errors = nil
 		lastScrapeTime := e.GetLastScrapeTime(conf).Add(time.Second)
 
-		info, _ := os.Stat(config.Cfgs[conf].Alertlog[0].File)
-		file, err := os.Open(config.Cfgs[conf].Alertlog[0].File)
-		ogg := config.Cfgs[conf].Alertlog[0].Ogg
+		for alertConfig, _ := range config.Cfgs[conf].Alertlog {
+			Errors = nil
+			info, _ := os.Stat(config.Cfgs[conf].Alertlog[alertConfig].File)
+			file, err := os.Open(config.Cfgs[conf].Alertlog[alertConfig].File)
+			ogg := config.Cfgs[conf].Alertlog[alertConfig].Ogg
 
-		if err != nil {
-			log.Errorln(err)
-		} else {
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				if ogg {
-					match := oggTimeRe.FindStringSubmatch(scanner.Text())
-					if match != nil {
-						t, err := time.ParseInLocation(ogglayout, match[1], loc)
+			if err != nil {
+				log.Errorln(err)
+			} else {
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					if ogg {
+						match := oggTimeRe.FindStringSubmatch(scanner.Text())
+						if match != nil {
+							t, err := time.ParseInLocation(ogglayout, match[1], loc)
+							if err == nil {
+								lastTime = t
+								if lastTime.After(lastScrapeTime) {
+									if re.MatchString(scanner.Text()) {
+										oerr := re.FindString(scanner.Text())
+										if !isIgnored(conf, alertConfig, oerr) {
+											addError(oerr)
+										}
+									}
+								}
+							} else {
+								continue
+							}
+						}
+					} else {
+						t, err := time.ParseInLocation(oralayout, scanner.Text(), loc)
 						if err == nil {
 							lastTime = t
+						} else {
 							if lastTime.After(lastScrapeTime) {
 								if re.MatchString(scanner.Text()) {
 									oerr := re.FindString(scanner.Text())
-									if !isIgnored(conf, oerr) {
+									if !isIgnored(conf, alertConfig, oerr) {
 										addError(oerr)
 									}
-								}
-							}
-						} else {
-							continue
-						}
-					}
-				} else {
-					t, err := time.ParseInLocation(oralayout, scanner.Text(), loc)
-					if err == nil {
-						lastTime = t
-					} else {
-						if lastTime.After(lastScrapeTime) {
-							if re.MatchString(scanner.Text()) {
-								oerr := re.FindString(scanner.Text())
-								if !isIgnored(conf, oerr) {
-									addError(oerr)
 								}
 							}
 						}
 					}
 				}
+				file.Close()
+				e.SetLastScrapeTime(conf, lastTime)
+				for i, _ := range Errors {
+					e.alertlog.WithLabelValues(
+						config.Cfgs[conf].Database,
+						config.Cfgs[conf].Instance,
+						Errors[i].ora).Set(float64(Errors[i].count))
+					WriteLog(config.Cfgs[conf].Instance + " " + e.lastIp +
+						" (" + strconv.Itoa(Errors[i].count) + "): " +
+						Errors[i].ora)
+				}
+				e.alertdate.WithLabelValues(config.Cfgs[conf].Database,
+					config.Cfgs[conf].Instance).Set(float64(info.ModTime().Unix()))
 			}
-			file.Close()
-			e.SetLastScrapeTime(conf, lastTime)
-			for i, _ := range Errors {
-				e.alertlog.WithLabelValues(
-					config.Cfgs[conf].Database,
-					config.Cfgs[conf].Instance,
-					Errors[i].ora).Set(float64(Errors[i].count))
-				WriteLog(config.Cfgs[conf].Instance + " " + e.lastIp +
-					" (" + strconv.Itoa(Errors[i].count) + "): " +
-					Errors[i].ora)
-			}
-			e.alertdate.WithLabelValues(config.Cfgs[conf].Database,
-				config.Cfgs[conf].Instance).Set(float64(info.ModTime().Unix()))
 		}
 	}
 	WriteAccess()
