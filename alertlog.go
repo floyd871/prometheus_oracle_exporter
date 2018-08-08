@@ -5,7 +5,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/prometheus/common/log"
@@ -26,15 +25,14 @@ type Lastlogs struct {
 }
 
 type oraerr struct {
-	ora    string
-	text   string
-	ignore string
-	count  int
+	ora   string
+	count int
 }
 
 var (
 	Errors    []oraerr
 	oralayout = "Mon Jan 02 15:04:05 2006"
+	ogglayout = "2006-01-02 15:04:05"
 	lastlog   Lastlogs
 )
 
@@ -81,37 +79,34 @@ func (e *Exporter) SetLastScrapeTime(conf int, t time.Time) {
 	}
 }
 
-func addError(conf int, ora string, text string) {
-	var found bool = false
-	for i, _ := range Errors {
-		if Errors[i].ora == ora {
+func isIgnored(conf int, err string) bool {
+	for _, e := range config.Cfgs[conf].Alertlog[0].Ignore {
+		if e == err {
+			return true
+		}
+	}
+	return false
+}
+
+func addError(oerr string) {
+	found := false
+	for i := range Errors {
+		if Errors[i].ora == oerr {
 			Errors[i].count++
 			found = true
+			break
 		}
 	}
 	if !found {
-		ignore := "0"
-		for _, e := range config.Cfgs[conf].Alertlog[0].Ignoreora {
-			if e == ora {
-				ignore = "1"
-			}
-		}
-		is := strings.Index(text, " ")
-		ip := strings.Index(text, ". ")
-		if is < 0 {
-			is = 0
-		}
-		if ip < 0 {
-			ip = len(text)
-		}
-		ora := oraerr{ora: ora, text: text[is+1 : ip], ignore: ignore, count: 1}
-		Errors = append(Errors, ora)
+		err := oraerr{ora: oerr, count: 1}
+		Errors = append(Errors, err)
 	}
 }
 
 func (e *Exporter) ScrapeAlertlog() {
 	loc := time.Now().Location()
 	re := regexp.MustCompile(`O(RA|GG)-[0-9]+`)
+	oggTimeRe := regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+(.*)$`)
 
 	ReadAccess()
 	for conf, _ := range config.Cfgs {
@@ -121,19 +116,43 @@ func (e *Exporter) ScrapeAlertlog() {
 
 		info, _ := os.Stat(config.Cfgs[conf].Alertlog[0].File)
 		file, err := os.Open(config.Cfgs[conf].Alertlog[0].File)
+		ogg := config.Cfgs[conf].Alertlog[0].Ogg
+
 		if err != nil {
-			log.Infoln(err)
+			log.Errorln(err)
 		} else {
 			scanner := bufio.NewScanner(file)
 			for scanner.Scan() {
-				t, err := time.ParseInLocation(oralayout, scanner.Text(), loc)
-				if err == nil {
-					lastTime = t
+				if ogg {
+					match := oggTimeRe.FindStringSubmatch(scanner.Text())
+					if match != nil {
+						t, err := time.ParseInLocation(ogglayout, match[1], loc)
+						if err == nil {
+							lastTime = t
+							if lastTime.After(lastScrapeTime) {
+								if re.MatchString(scanner.Text()) {
+									oerr := re.FindString(scanner.Text())
+									if !isIgnored(conf, oerr) {
+										addError(oerr)
+									}
+								}
+							}
+						} else {
+							continue
+						}
+					}
 				} else {
-					if lastTime.After(lastScrapeTime) {
-						if re.MatchString(scanner.Text()) {
-							ora := re.FindString(scanner.Text())
-							addError(conf, ora, scanner.Text())
+					t, err := time.ParseInLocation(oralayout, scanner.Text(), loc)
+					if err == nil {
+						lastTime = t
+					} else {
+						if lastTime.After(lastScrapeTime) {
+							if re.MatchString(scanner.Text()) {
+								oerr := re.FindString(scanner.Text())
+								if !isIgnored(conf, oerr) {
+									addError(oerr)
+								}
+							}
 						}
 					}
 				}
@@ -141,14 +160,13 @@ func (e *Exporter) ScrapeAlertlog() {
 			file.Close()
 			e.SetLastScrapeTime(conf, lastTime)
 			for i, _ := range Errors {
-				e.alertlog.WithLabelValues(config.Cfgs[conf].Database,
+				e.alertlog.WithLabelValues(
+					config.Cfgs[conf].Database,
 					config.Cfgs[conf].Instance,
-					Errors[i].ora,
-					Errors[i].text,
-					Errors[i].ignore).Set(float64(Errors[i].count))
+					Errors[i].ora).Set(float64(Errors[i].count))
 				WriteLog(config.Cfgs[conf].Instance + " " + e.lastIp +
-					" (" + Errors[i].ignore + "/" + strconv.Itoa(Errors[i].count) + "): " +
-					Errors[i].ora + " - " + Errors[i].text)
+					" (" + strconv.Itoa(Errors[i].count) + "): " +
+					Errors[i].ora)
 			}
 			e.alertdate.WithLabelValues(config.Cfgs[conf].Database,
 				config.Cfgs[conf].Instance).Set(float64(info.ModTime().Unix()))

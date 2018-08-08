@@ -162,7 +162,7 @@ func NewExporter() *Exporter {
 			Namespace: namespace,
 			Name:      "error",
 			Help:      "Oracle Errors occured during configured interval.",
-		}, []string{"database", "dbinstance", "code", "description", "ignore"}),
+		}, []string{"database", "dbinstance", "code"}),
 		alertdate: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "error_unix_seconds",

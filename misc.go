@@ -14,8 +14,9 @@ import (
 )
 
 type Alert struct {
-	File      string   `yaml:"file"`
-	Ignoreora []string `yaml:"ignoreora"`
+	File   string   `yaml:"file"`
+	Ignore []string `yaml:"Ignore"`
+	Ogg    bool     `yaml:"ogg"`
 }
 
 type Query struct {
@@ -97,11 +98,14 @@ func WriteAccess() {
 	ioutil.WriteFile(normalizePath(*accessFile), content, 0644)
 }
 
-func WriteLog(message string) {
+func WriteLog(message string) bool {
 	fh, err := os.OpenFile(normalizePath(*logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err == nil {
-		fh.Seek(0, 2)
-		fh.WriteString(time.Now().Format("2006-01-02 15:04:05") + " " + message + "\n")
-		fh.Close()
+	if err != nil {
+		log.Infof("Failed writing to a log, %v", err)
+		return false
 	}
+	fh.Seek(0, 2)
+	fh.WriteString(time.Now().Format("2006-01-02 15:04:05") + " " + message + "\n")
+	fh.Close()
+	return true
 }
