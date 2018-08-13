@@ -31,7 +31,7 @@ connections:
    instance: STAGE
    alertlog:
     - file: /data/oracle/diag/rdbms/stage/STAGE/trace/alert_STAGE.log
-      Ignore:
+      ignore:
       - ORA-00001
       - ORA-01033
       - ORA-01041
