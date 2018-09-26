@@ -118,5 +118,16 @@ Usage of ./prometheus_oracle_exporter:
 ```
 
 # Grafana
+In The folder "Grafana" are examples of my used Grafana-Dashboards
 
+## Overview
 ![Overview](grafana/overview.png)
+
+## Tablespace
+![Tablespace](grafana/tablespace.png)
+
+## Transfers
+![Transfer](grafana/transfers.png)
+
+## Transfers RAC
+![Transfer RAC](grafana/transfers-rac.png)
