@@ -131,3 +131,6 @@ In The folder [Grafana](https://grafana.com) are examples of my used Dashboards
 
 ## Transfers RAC
 ![Transfer RAC](grafana/transfers-rac.png)
+
+## Errors
+![Errors](grafana/errors.png)
