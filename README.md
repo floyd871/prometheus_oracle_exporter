@@ -119,4 +119,4 @@ Usage of ./prometheus_oracle_exporter:
 
 # Grafana
 
-![Overview](gafana/overview.png)
+![Overview](grafana/overview.png)
