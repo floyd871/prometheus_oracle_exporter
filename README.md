@@ -118,7 +118,7 @@ Usage of ./prometheus_oracle_exporter:
 ```
 
 # Grafana
-In The folder "Grafana" are examples of my used Grafana-Dashboards
+In The folder [Grafana](https://grafana.com) are examples of my used Dashboards
 
 ## Overview
 ![Overview](grafana/overview.png)
