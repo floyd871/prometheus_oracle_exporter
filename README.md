@@ -35,7 +35,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
-Yo can define your own Queries and execute/scrape them
+You can define your own Queries and execute/scrape them
 
 # Installation
 
