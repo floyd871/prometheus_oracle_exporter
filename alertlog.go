@@ -133,7 +133,6 @@ func (e *Exporter) ScrapeAlertlog() {
           }
         }
       }
-      file.Close()
       e.SetLastScrapeTime(conf,lastTime)
       for i, _ := range Errors {
         e.alertlog.WithLabelValues(config.Cfgs[conf].Database,
@@ -148,6 +147,7 @@ func (e *Exporter) ScrapeAlertlog() {
       e.alertdate.WithLabelValues(config.Cfgs[conf].Database,
                                   config.Cfgs[conf].Instance).Set(float64(info.ModTime().Unix()))
     }
+    if file != nil {; file.Close();}
   }
   WriteAccess()
 }

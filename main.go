@@ -416,7 +416,7 @@ func (e *Exporter) ScrapeAsmspace() {
     if conn.db != nil {
       rows, err = conn.db.Query(`SELECT g.name, sum(d.total_mb), sum(d.free_mb)
                                   FROM v$asm_disk d, v$asm_diskgroup g
-                                 WHERE  d.group_number = g.group_number (+)
+                                 WHERE  d.group_number = g.group_number
                                   AND  d.header_status = 'MEMBER'
                                  GROUP by  g.name,  g.group_number`)
       if err != nil {
@@ -786,7 +786,7 @@ func (e *Exporter) Connect() {
         config.Cfgs[i].db.Close()
         config.Cfgs[i].db = nil;
         e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
-        log.Infoln("Connect OK, Inital query failed: ", conf.Connection)
+        // log.Infoln("Connect OK, Inital query failed: ", conf.Connection)
       }
     } else {
       e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
