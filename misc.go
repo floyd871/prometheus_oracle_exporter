@@ -97,6 +97,6 @@ func WriteLog(message string) {
   if err == nil {
     fh.Seek(0,2)
     fh.WriteString(time.Now().Format("2006-01-02 15:04:05") + " " + message + "\n")
-    fh.Close()
   }
+  if fh != nil {; fh.Close();}
 }

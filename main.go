@@ -773,22 +773,24 @@ func (e *Exporter) Connect() {
        config.Cfgs[i].db.Close()
        config.Cfgs[i].db = nil
     }
-    config.Cfgs[i].db , err = sql.Open("oci8", conf.Connection)
-    if err == nil {
-      err = config.Cfgs[i].db.QueryRow("select db_unique_name,instance_name from v$database,v$instance").Scan(&dbname,&inname)
+    if len(conf.Connection) > 0 {
+      config.Cfgs[i].db , err = sql.Open("oci8", conf.Connection)
       if err == nil {
-        if (conf.Database != dbname) || (conf.Instance != inname) {
-          config.Cfgs[i].Database = dbname
-          config.Cfgs[i].Instance = inname
+        err = config.Cfgs[i].db.QueryRow("select db_unique_name,instance_name from v$database,v$instance").Scan(&dbname,&inname)
+        if err == nil {
+          if (conf.Database != dbname) || (conf.Instance != inname) {
+            config.Cfgs[i].Database = dbname
+            config.Cfgs[i].Instance = inname
+          }
+          e.up.WithLabelValues(conf.Database,conf.Instance).Set(1)
+        } else {
+          config.Cfgs[i].db.Close()
+          e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
+          //log.Infoln("Connect OK, Inital query failed: ", conf.Connection)
         }
-        e.up.WithLabelValues(conf.Database,conf.Instance).Set(1)
-      } else {
-        config.Cfgs[i].db.Close()
-        config.Cfgs[i].db = nil;
-        e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
-        // log.Infoln("Connect OK, Inital query failed: ", conf.Connection)
       }
     } else {
+      //log.Infoln("Dummy Connection: ", conf.Database)
       e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
     }
   }

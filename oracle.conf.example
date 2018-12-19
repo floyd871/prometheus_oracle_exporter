@@ -40,3 +40,9 @@ connections:
       name: sample3
     - sql: "select 4 from dual"
       name: sample3
+
+ - connection:
+        database: DUMMY
+        instance: DUMMY
+        alertlog:
+         - file: trace/alert_DUMMY.log
