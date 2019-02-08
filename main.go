@@ -786,6 +786,7 @@ func (e *Exporter) Connect() {
         } else {
           config.Cfgs[i].db.Close()
           e.up.WithLabelValues(conf.Database,conf.Instance).Set(0)
+          log.Errorln("Error connecting to database:", err)
           //log.Infoln("Connect OK, Inital query failed: ", conf.Connection)
         }
       }
