@@ -52,7 +52,7 @@ type Exporter struct {
 
 var (
   // Version will be set at build time.
-  Version       = "1.1.1"
+  Version       = "1.1.2"
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
   pTabRows      = flag.Bool("tablerows", false, "Expose Table rows (CAN TAKE VERY LONG)")
@@ -448,8 +448,8 @@ func (e *Exporter) ScrapeTablespace() {
   for _, conn := range config.Cfgs {
     if conn.db != nil {
       rows, err = conn.db.Query(`WITH
-                                   getsize AS (SELECT tablespace_name, autoextensible, SUM(bytes) tsize
-                                               FROM dba_data_files GROUP BY tablespace_name, autoextensible),
+                                   getsize AS (SELECT tablespace_name, max(autoextensible) autoextensible, SUM(bytes) tsize
+                                               FROM dba_data_files GROUP BY tablespace_name),
                                    getfree as (SELECT tablespace_name, contents, SUM(blocks*block_size) tfree
                                                FROM DBA_LMT_FREE_SPACE a, v$tablespace b, dba_tablespaces c
                                                WHERE a.TABLESPACE_ID= b.ts# and b.name=c.tablespace_name
@@ -865,8 +865,10 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
   e.ScrapeInterconnect()
   e.interconnect.Collect(ch)
 
-  e.ScrapeRecovery()
-  e.recovery.Collect(ch)
+  if e.vTabRows || *pTabRows || e.vTabBytes || *pTabBytes || e.vIndBytes || *pIndBytes || e.vLobBytes || *pLobBytes {
+    e.ScrapeRecovery()
+    e.recovery.Collect(ch)
+  }
 
   e.ScrapeRedo()
   e.redo.Collect(ch)
