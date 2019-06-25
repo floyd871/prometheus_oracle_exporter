@@ -8,6 +8,7 @@ import (
     "time"
   _ "github.com/mattn/go-oci8"
     "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
     "github.com/prometheus/common/log"
 )
 
@@ -935,7 +936,7 @@ func (e *Exporter) Handler(w http.ResponseWriter, r *http.Request) {
   if r.URL.Query().Get("tablebytes") == "true" {; e.vTabBytes = true; }
   if r.URL.Query().Get("indexbytes") == "true" {; e.vIndBytes = true; }
   if r.URL.Query().Get("lobbytes") == "true" {; e.vLobBytes = true; }
-  prometheus.Handler().ServeHTTP(w, r)
+  promhttp.Handler().ServeHTTP(w, r)
 }
 
 func main() {
