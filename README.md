@@ -17,7 +17,6 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_tablespace (tablespace total/free)
 - oracledb_asmspace (Space in ASM (v$asm_disk/v$asm_diskgroup))
 - oracledb_interconnect (view v$sysstat (gc cr blocks served / gc cr blocks flushed / gc cr blocks received))
-- oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
 - oracledb_redo (Redo log switches over last 5 min from v$log_history)
 - oracledb_cachehitratio (Cache hit ratios (v$sysmetric)
 - oracledb_up (Whether the Oracle server is up)
@@ -32,6 +31,7 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_tablebytes (Bytes used by Table)
 - oracledb_indexbytes (Bytes used by Indexes of associated Table)
 - oracledb_lobbytes (Bytes used by Lobs of associated Table)
+- oracledb_recovery (percentage usage in FRA from V$RECOVERY_FILE_DEST)
 
 
 The Oracle Alertlog file is scanned and the metrics are exposed as a gauge metric with a total occurence of the specific ORA.
