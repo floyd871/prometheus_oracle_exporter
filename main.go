@@ -49,6 +49,7 @@ type Exporter struct {
   vTabBytes       bool
   vIndBytes       bool
   vLobBytes       bool
+  vRecovery       bool
 }
 
 var (
@@ -60,6 +61,7 @@ var (
   pTabBytes     = flag.Bool("tablebytes", false, "Expose Table size (CAN TAKE VERY LONG)")
   pIndBytes     = flag.Bool("indexbytes", false, "Expose Index size for any Table (CAN TAKE VERY LONG)")
   pLobBytes     = flag.Bool("lobbytes", false, "Expose Lobs size for any Table (CAN TAKE VERY LONG)")
+  pRecovery     = flag.Bool("recovery", false, "Expose Recovery percentage usage of FRA (CAN TAKE VERY LONG)")
   configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
   logFile       = flag.String("logfile", "exporter.log", "Logfile for parsed Oracle Alerts.")
   accessFile    = flag.String("accessfile", "access.conf", "Last access for parsed Oracle Alerts.")
@@ -72,6 +74,7 @@ var (
                             <a href='` + *metricPath + `?tablebytes=true'>Metrics with tablebytes</a></p>
                             <a href='` + *metricPath + `?indexbytes=true'>Metrics with indexbytes</a></p>
                             <a href='` + *metricPath + `?lobbytes=true'>Metrics with lobbytes</a></p>
+                            <a href='` + *metricPath + `?recovery=true'>Metrics with recovery</a></p>
                           </body>
                           </html>`)
 )
@@ -717,7 +720,7 @@ func (e *Exporter) ScrapeLobbytes() {
                                  and l.owner NOT LIKE '%SYS%'
                                  group by l.owner,l.table_name`)
       if err != nil {
-        continue 
+        continue
       }
       defer rows.Close()
       for rows.Next() {
@@ -867,7 +870,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
   e.ScrapeInterconnect()
   e.interconnect.Collect(ch)
 
-  if e.vTabRows || *pTabRows || e.vTabBytes || *pTabBytes || e.vIndBytes || *pIndBytes || e.vLobBytes || *pLobBytes {
+  if e.vRecovery || *pRecovery {
     e.ScrapeRecovery()
     e.recovery.Collect(ch)
   }
@@ -932,10 +935,12 @@ func (e *Exporter) Handler(w http.ResponseWriter, r *http.Request) {
   e.vTabBytes = false
   e.vIndBytes = false
   e.vLobBytes = false
+  e.vRecovery = false
   if r.URL.Query().Get("tablerows") == "true" {; e.vTabRows = true; }
   if r.URL.Query().Get("tablebytes") == "true" {; e.vTabBytes = true; }
   if r.URL.Query().Get("indexbytes") == "true" {; e.vIndBytes = true; }
   if r.URL.Query().Get("lobbytes") == "true" {; e.vLobBytes = true; }
+  if r.URL.Query().Get("recovery") == "true" {; e.vRecovery = true; }
   promhttp.Handler().ServeHTTP(w, r)
 }
 
