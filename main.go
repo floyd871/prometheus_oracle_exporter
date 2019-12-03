@@ -6,6 +6,7 @@ import (
     "net"
     "net/http"
     "time"
+    "strconv"
   _ "github.com/mattn/go-oci8"
     "github.com/prometheus/client_golang/prometheus"
     "github.com/prometheus/client_golang/prometheus/promhttp"
@@ -54,7 +55,7 @@ type Exporter struct {
 
 var (
   // Version will be set at build time.
-  Version       = "1.1.3"
+  Version       = "1.1.4"
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
   pTabRows      = flag.Bool("tablerows", false, "Expose Table rows (CAN TAKE VERY LONG)")
@@ -185,7 +186,7 @@ func NewExporter() *Exporter {
       Namespace: namespace,
       Name:      "query",
       Help:      "Self defined Queries from Configuration File.",
-    }, []string{"database","dbinstance","name"}),
+    }, []string{"database","dbinstance","name","column","row"}),
     asmspace: prometheus.NewGaugeVec(prometheus.GaugeOpts{
       Namespace: namespace,
       Name:      "asmspace",
@@ -221,21 +222,34 @@ func (e *Exporter) ScrapeQuery() {
     err  error
   )
   for _, conn := range config.Cfgs {
-    //num  metric_name
-    //43  sessions
     if conn.db != nil {
       for _, query := range conn.Queries {
         rows, err = conn.db.Query(query.Sql)
         if err != nil {
           continue
         }
+        
+        cols, _ := rows.Columns()
+        vals := make([]interface{}, len(cols))
+        var rownum int = 1
+
         defer rows.Close()
         for rows.Next() {
-          var value float64
-          if err := rows.Scan(&value); err != nil {
+          for i := range cols {
+              vals[i] = &vals[i]
+          }
+
+          err = rows.Scan(vals...)
+          if err != nil {
             break
           }
-          e.query.WithLabelValues(conn.Database,conn.Instance,query.Name).Set(value)
+
+          for i := range cols {
+            if value, ok := vals[i].(float64); ok {
+              e.query.WithLabelValues(conn.Database,conn.Instance,query.Name,cols[i],strconv.Itoa(rownum)).Set(value)
+            }
+          }
+          rownum ++
         }
       }
     }

@@ -15,9 +15,9 @@ connections:
        - ORA-609
        - ORA-3136
    queries:
-    - sql: "select 1 from dual"
+    - sql: "select 1 as column1, 2 as column2 from dual"
       name: sample1
-    - sql: "select 2 from dual"
+    - sql: "select 2 as column1 from dual"
       name: sample2
 
  - connection: <user>/<pass>@<tnsname>
@@ -36,9 +36,9 @@ connections:
       - ORA-609
       - ORA-3136
    queries:
-    - sql: "select 3 from dual"
+    - sql: "select 3 as column1 from dual"
       name: sample3
-    - sql: "select 4 from dual"
+    - sql: "select 4 as column1 from dual"
       name: sample3
 
  - connection:
