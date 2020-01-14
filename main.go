@@ -55,9 +55,10 @@ type Exporter struct {
 
 var (
   // Version will be set at build time.
-  Version       = "1.1.4"
+  Version       = "1.1.5"
   listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
   metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
+  pMetrics      = flag.Bool("defaultmetrics", true, "Expose standard metrics")
   pTabRows      = flag.Bool("tablerows", false, "Expose Table rows (CAN TAKE VERY LONG)")
   pTabBytes     = flag.Bool("tablebytes", false, "Expose Table size (CAN TAKE VERY LONG)")
   pIndBytes     = flag.Bool("indexbytes", false, "Expose Index size for any Table (CAN TAKE VERY LONG)")
@@ -863,53 +864,55 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
   e.Connect()
   e.up.Collect(ch)
 
-  e.ScrapeUptime()
-  e.uptime.Collect(ch)
-
-  e.ScrapeSession()
-  e.session.Collect(ch)
-
-  e.ScrapeSysstat()
-  e.sysstat.Collect(ch)
-
-  e.ScrapeWaitclass()
-  e.waitclass.Collect(ch)
-
-  e.ScrapeSysmetric()
-  e.sysmetric.Collect(ch)
-
-  e.ScrapeTablespace()
-  e.tablespace.Collect(ch)
-
-  e.ScrapeInterconnect()
-  e.interconnect.Collect(ch)
-
   if e.vRecovery || *pRecovery {
     e.ScrapeRecovery()
     e.recovery.Collect(ch)
   }
 
-  e.ScrapeRedo()
-  e.redo.Collect(ch)
+  if *pMetrics {
+    e.ScrapeUptime()
+    e.uptime.Collect(ch)
+  
+    e.ScrapeSession()
+    e.session.Collect(ch)
 
-  e.ScrapeCache()
-  e.cache.Collect(ch)
+    e.ScrapeSysstat()
+    e.sysstat.Collect(ch)
 
-  e.ScrapeAlertlog()
-  e.alertlog.Collect(ch)
-  e.alertdate.Collect(ch)
+    e.ScrapeWaitclass()
+    e.waitclass.Collect(ch)
 
-  e.ScrapeServices()
-  e.services.Collect(ch)
+    e.ScrapeSysmetric()
+    e.sysmetric.Collect(ch)
 
-  e.ScrapeParameter()
-  e.parameter.Collect(ch)
+    e.ScrapeTablespace()
+    e.tablespace.Collect(ch)
+
+    e.ScrapeInterconnect()
+    e.interconnect.Collect(ch)
+
+    e.ScrapeRedo()
+    e.redo.Collect(ch)
+
+    e.ScrapeCache()
+    e.cache.Collect(ch)
+
+    e.ScrapeAlertlog()
+    e.alertlog.Collect(ch)
+    e.alertdate.Collect(ch)
+
+    e.ScrapeServices()
+    e.services.Collect(ch)
+
+    e.ScrapeParameter()
+    e.parameter.Collect(ch)
+
+    e.ScrapeAsmspace()
+    e.asmspace.Collect(ch)
+  }
 
   e.ScrapeQuery()
   e.query.Collect(ch)
-
-  e.ScrapeAsmspace()
-  e.asmspace.Collect(ch)
 
   if e.vTabRows || *pTabRows {
     e.ScrapeTablerows()

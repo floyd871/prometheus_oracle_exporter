@@ -103,6 +103,8 @@ Usage of ./prometheus_oracle_exporter:
     Last access for parsed Oracle Alerts. (default "access.conf")
   -configfile string
     ConfigurationFile in YAML format. (default "oracle.conf")
+  -defaultmetrics
+    Expose standard metrics (default true)
   -indexbytes
     Expose Index size for any Table (CAN TAKE VERY LONG)
   -lobbytes
