@@ -40,19 +40,19 @@ type Exporter struct {
 	alertdate       *prometheus.GaugeVec
 	services        *prometheus.GaugeVec
 	parameter       *prometheus.GaugeVec
-	query           *prometheus.GaugeVec
-	asmspace        *prometheus.GaugeVec
-	tablerows       *prometheus.GaugeVec
-	tablebytes      *prometheus.GaugeVec
-	indexbytes      *prometheus.GaugeVec
-	lobbytes        *prometheus.GaugeVec
-	lastIp          string
-	vTabRows        bool
-	vTabBytes       bool
-	vIndBytes       bool
-	vLobBytes       bool
-	vRecovery       bool
-	custom          map[string]*prometheus.GaugeVec
+	//query           *prometheus.GaugeVec
+	asmspace   *prometheus.GaugeVec
+	tablerows  *prometheus.GaugeVec
+	tablebytes *prometheus.GaugeVec
+	indexbytes *prometheus.GaugeVec
+	lobbytes   *prometheus.GaugeVec
+	lastIp     string
+	vTabRows   bool
+	vTabBytes  bool
+	vIndBytes  bool
+	vLobBytes  bool
+	vRecovery  bool
+	custom     map[string]*prometheus.GaugeVec
 }
 
 var (

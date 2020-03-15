@@ -41,6 +41,42 @@ You can define your own Queries and execute/scrape them
 
 Ensure that the configfile (oracle.conf) is set correctly before starting. You can add multiple instances, e.g. the ASM instance. It is even possible to run one Exporter for all your Databases, but this is not recommended. We use it in our Company because on one host multiple Instances are running.
 
+**Custom metrics:**
+
+You can add custom queries in config file for scraping (see field `queries` in [example](./oracle.conf.example)). The query identifier is `name` parameter. For each query you define columns for metrics (`metrics` parameter) and columns for labels (`labels` parameter).
+
+Limitations:
+1. If two queries contains different columns in `metrics` or `labels` parameter, then you need use different `name` for this queries (through the entire config file).
+2. Mandatory params: `metrics`, `name`, `help`
+3. Parameter `labels` is optional
+4. Columns defined in `labels` parameter should be CHAR, VARCHAR or NUMBER type.
+5. Columns defined in `metrics` parameter should be  NUMBER type.
+
+Each defined query will provide a set of Prometheus metrics with a name `oracledb_custom_<query_name>` for every column defined in `metrics` parameter and for every row in query result. Column defined in `metrics` will appear in `metric` label.
+
+Example:
+```yaml
+queries:
+ - sql: "select 1 as column1, 2 as column2, 3 as label_column from dual"
+   name: sample1
+   help: "This is my metric number 1"
+   metrics:
+    - column1
+    - column2
+   labels:
+    - label_column
+```
+If this query returns two rows then exporter will provide such set of metrics:
+```
+# HELP oracledb_custom_sample1 This is my metric number 1
+# TYPE oracledb_custom_sample1 gauge
+oracledb_custom_sample1{database="mydb",dbinstance="mydb",metric="column1",label_column="some value 1",rownum="1"} 3.14
+oracledb_custom_sample1{database="mydb",dbinstance="mydb",metric="column1",label_column="some value 2",rownum="2"} 6.28
+oracledb_custom_sample1{database="mydb",dbinstance="mydb",metric="column2",label_column="some value 1",rownum="1"} 1
+oracledb_custom_sample1{database="mydb",dbinstance="mydb",metric="column2",label_column="some value 2",rownum="2"} 2
+```
+
+
 # Prometheus Configuration
 ```
 scrape_configs:
