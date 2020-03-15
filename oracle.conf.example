@@ -17,8 +17,16 @@ connections:
    queries:
     - sql: "select 1 as column1, 2 as column2 from dual"
       name: sample1
+      help: "This is my metric number 1"
+      metrics:
+       - column1
+      labels:
+       - column2
     - sql: "select 2 as column1 from dual"
       name: sample2
+      help: "This is my metric number 2"
+      metrics:
+       - column1
 
  - connection: <user>/<pass>@<tnsname>
    database: STAGE
@@ -36,10 +44,19 @@ connections:
       - ORA-609
       - ORA-3136
    queries:
-    - sql: "select 3 as column1 from dual"
+    - sql: "select 1 as column1, 'label_value' as column2 from dual"
+      name: sample1
+      help: "This is my metric number 1"
+      metrics:
+       - column1
+      labels:
+       - column2
+    - sql: "select 3 as column1, 4 as column4 from dual"
       name: sample3
-    - sql: "select 4 as column1 from dual"
-      name: sample3
+      help: "This is my metric number 3"
+      metrics:
+       - column1
+       - column4
 
  - connection:
         database: DUMMY
