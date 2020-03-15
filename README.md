@@ -24,7 +24,6 @@ The following metrics are exposed currently. Support for RAC (databasename and i
 - oracledb_error_unix_seconds (Last modified Date of alert.log in Unixtime)
 - oracledb_services (Active Oracle Services (v$active_services))
 - oracledb_parameter (Configuration Parameters (v$parameter))
-- oracledb_query (Self defined Queries in Configuration File)
 
 *TOOK VERY LONG, BE CAREFUL (Put the Metrics below in a separate Scrape-Config):
 - oracledb_tablerows (Number of Rows in Tables)
