@@ -538,7 +538,7 @@ func (e *Exporter) ScrapeAsmspace() {
 	for _, conn := range config.Cfgs {
 		if conn.db != nil {
 			rows, err = conn.db.Query(`SELECT g.name, sum(d.total_mb), sum(d.free_mb)
-                                  FROM v$asm_disk d, v$asm_diskgroup g
+                                  FROM v$asm_disk_stat d, v$asm_diskgroup_stat g
                                  WHERE  d.group_number = g.group_number
                                   AND  d.header_status = 'MEMBER'
                                  GROUP by  g.name,  g.group_number`)
