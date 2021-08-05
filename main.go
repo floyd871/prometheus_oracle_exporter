@@ -570,17 +570,17 @@ func (e *Exporter) ScrapeTablespace() {
 	for _, conn := range config.Cfgs {
 		if conn.db != nil {
 			rows, err = conn.db.Query(`WITH
-                                   getsize AS (SELECT tablespace_name, max(autoextensible) autoextensible, SUM(bytes) tsize
+                                   getsize AS (SELECT tablespace_name, max(autoextensible) autoextensible, SUM(bytes) tsize, sum(maxbytes) maxbytes
                                                FROM dba_data_files GROUP BY tablespace_name),
                                    getfree as (SELECT tablespace_name, contents, SUM(blocks*block_size) tfree
                                                FROM DBA_LMT_FREE_SPACE a, v$tablespace b, dba_tablespaces c
                                                WHERE a.TABLESPACE_ID= b.ts# and b.name=c.tablespace_name
                                                GROUP BY tablespace_name,contents)
-                                 SELECT a.tablespace_name, b.contents, a.tsize,  b.tfree, a.autoextensible autoextend
+                                 SELECT a.tablespace_name, b.contents, a.tsize, a.maxbytes, b.tfree, a.autoextensible autoextend
                                  FROM GETSIZE a, GETFREE b
                                  WHERE a.tablespace_name = b.tablespace_name
                                  UNION
-                                 SELECT tablespace_name, 'TEMPORARY', sum(tablespace_size), sum(free_space), 'NO'
+                                 SELECT tablespace_name, 'TEMPORARY', sum(tablespace_size), sum(tablespace_size), sum(free_space), 'NO'
                                  FROM dba_temp_free_space
                                  GROUP BY tablespace_name`)
 			if err != nil {
@@ -591,12 +591,14 @@ func (e *Exporter) ScrapeTablespace() {
 				var name string
 				var contents string
 				var tsize float64
+				var maxsize float64
 				var tfree float64
 				var auto string
-				if err := rows.Scan(&name, &contents, &tsize, &tfree, &auto); err != nil {
+				if err := rows.Scan(&name, &contents, &tsize, &maxsize, &tfree, &auto); err != nil {
 					break
 				}
 				e.tablespace.WithLabelValues(conn.Database, conn.Instance, "total", name, contents, auto).Set(tsize)
+				e.tablespace.WithLabelValues(conn.Database, conn.Instance, "max", name, contents, auto).Set(maxsize)
 				e.tablespace.WithLabelValues(conn.Database, conn.Instance, "free", name, contents, auto).Set(tfree)
 				e.tablespace.WithLabelValues(conn.Database, conn.Instance, "used", name, contents, auto).Set(tsize - tfree)
 			}
