@@ -8,10 +8,20 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/mattn/go-oci8"
+	"github.com/BurntSushi/toml"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log/level"
+        "github.com/mattn/go-oci8"
+
+	"fmt"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log"
+
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/exporter-toolkit/web"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 // Metric name parts.
@@ -1088,10 +1098,22 @@ func (e *Exporter) Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
-	log.Infoln("Starting Prometheus Oracle exporter " + Version)
+	
+	promlogConfig := &promlog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+
+	kingpin.Version("Prometheus_oracledb_exporter Build TSPL" + Version)
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
+	logger := promlog.New(promlogConfig)
+
+	level.Info(logger).Log("Starting Prometheus oracledb_exporter build TSPL " + Version)
+	
+	
+	//flag.Parse()
+	//log.Infoln("Starting Prometheus Oracle exporter build TSPL" + Version)
 	if loadConfig() {
-		log.Infoln("Config loaded: ", *configFile)
+		level.Info(logger).Log("Config loaded: ", *configFile)
 		exporter := NewExporter()
 		prometheus.MustRegister(exporter)
 
@@ -1099,7 +1121,15 @@ func main() {
 
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { w.Write(landingPage) })
 
-		log.Infoln("Listening on", *listenAddress)
-		log.Fatal(http.ListenAndServe(*listenAddress, nil))
+		level.Info(logger).Log("Listening on", *listenAddress)
+		
+		
+	server := &http.Server{Addr: *listenAddress}
+	if err := web.ListenAndServe(server, *tlsconfigFile, logger); err != nil {
+		level.Error(logger).Log("err", err)
+		os.Exit(1)
+						}
+		
+		
 	}
 }
