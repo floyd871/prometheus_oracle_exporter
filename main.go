@@ -57,22 +57,26 @@ type Exporter struct {
 
 var (
 	// Version will be set at build time.
+	
+	
 	Version       = "1.1.5"
 	listenAddress = flag.String("web.listen-address", ":9161", "Address to listen on for web interface and telemetry.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-	pMetrics      = flag.Bool("defaultmetrics", true, "Expose standard metrics")
-	pTabRows      = flag.Bool("tablerows", false, "Expose Table rows (CAN TAKE VERY LONG)")
-	pTabBytes     = flag.Bool("tablebytes", false, "Expose Table size (CAN TAKE VERY LONG)")
-	pIndBytes     = flag.Bool("indexbytes", false, "Expose Index size for any Table (CAN TAKE VERY LONG)")
-	pLobBytes     = flag.Bool("lobbytes", false, "Expose Lobs size for any Table (CAN TAKE VERY LONG)")
-	pRecovery     = flag.Bool("recovery", false, "Expose Recovery percentage usage of FRA (CAN TAKE VERY LONG)")
-	configFile    = flag.String("configfile", "oracle.conf", "ConfigurationFile in YAML format.")
-	logFile       = flag.String("logfile", "exporter.log", "Logfile for parsed Oracle Alerts.")
-	accessFile    = flag.String("accessfile", "access.conf", "Last access for parsed Oracle Alerts.")
+	pMetrics	= kingpin.Flag("defaultmetrics", "Expose standard metrics").Default("true").Bool()
+	
+	pTabRows      = kingpin.Flag("tablerows", "Expose table rows , takes long time").Default("false").Bool()
+	pTabBytes     = kingpin.Flag("tablebytes", "Expose table size , takes long time").Default("false").Bool()
+	pIndBytes     = kingpin.Flag("indexbytes", "Expose index size , takes long time").Default("false").Bool()
+	pLobBytes     = kingpin.Flag("lobbytes", "Expose lob size for any table , takes long time").Default("false").Bool()
+	pRecovery     = kingpin.Flag("Recovery", "Expose recovery percentage usage").Default("false").Bool()
+	configFile    = kingpin.Flag("configfile", "configuration file").Default("oracle.cong").String()
+	logFile       = kingpin.Flag("logfile", "log file for parsed oracle erors").Default("exporter.log").String()
+	accessFile    = kingpin.Flag("accessfile", "Last access for parsed oracle log").Default("access.conf").String()
+	tlsconfigFile =  kingpin.Flag("web.config", "Path to config yaml file that can enable TLS or authentication.").Default("").String()
 	landingPage   = []byte(`<html>
                           <head><title>Prometheus Oracle exporter</title></head>
                           <body>
-                            <h1>Prometheus Oracle exporter</h1><p>
+                            <h1>Prometheus Oracle exporter : Build TSPL </h1><p>
                             <a href='` + *metricPath + `'>Metrics</a></p>
                             <a href='` + *metricPath + `?tablerows=true'>Metrics with tablerows</a></p>
                             <a href='` + *metricPath + `?tablebytes=true'>Metrics with tablebytes</a></p>
